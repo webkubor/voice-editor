@@ -45,7 +45,7 @@ tts = "cli.app:app"
 qwen-tts-demo = "qwen_tts.cli.demo:main"
 
 [tool.setuptools]
-packages = { find = { where = ["."] , include = ["qwen_tts*", "cli*"] } }
+packages = { find = { where = ["."] , include = ["qwen_tts*", "cli*", "web*"] } }
 include-package-data = true
 
 [tool.setuptools.package-data]

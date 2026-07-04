@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>声音编辑器</title>
+<style>
+:root {
+  --bg: #0a0e14;
+  --bg-card: #111821;
+  --bg-hover: #1a2332;
+  --border: #1e2a3a;
+  --text: #d4d4d4;
+  --text-dim: #6b7785;
+  --gold: #d4a052;
+  --gold-bright: #f0c060;
+  --cyan: #56b6c2;
+  --green: #98c379;
+  --red: #e06c75;
+  --radius: 8px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Header ── */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+header h1 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--gold);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+header h1 .icon { font-size: 22px; }
+header .status-bar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  font-size: 12px;
+}
+.status-pill {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+}
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-dim);
+}
+.status-dot.ok { background: var(--green); }
+.status-dot.err { background: var(--red); }
+.status-dot.loading { background: var(--gold); animation: pulse 1s infinite; }
+@keyframes pulse { 50% { opacity: 0.3; } }
+
+/* ── Main Layout ── */
+.main {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ── Sidebar ── */
+.sidebar {
+  width: 260px;
+  background: var(--bg-card);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+.sidebar-header {
+  padding: 16px 16px 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.sidebar-header h2 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.sidebar-header .add-btn {
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  color: var(--gold);
+  padding: 4px 10px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+.sidebar-header .add-btn:hover {
+  border-color: var(--gold);
+  background: rgba(212, 160, 82, 0.1);
+}
+.persona-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 8px 8px;
+}
+.persona-item {
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-bottom: 2px;
+  border: 1px solid transparent;
+}
+.persona-item:hover {
+  background: var(--bg-hover);
+}
+.persona-item.active {
+  background: var(--bg-hover);
+  border-color: var(--gold);
+}
+.persona-item .name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+}
+.persona-item .key {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+.persona-item .badges {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+}
+.badge {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+.badge.ok { background: rgba(152, 195, 121, 0.15); color: var(--green); }
+.badge.no { background: rgba(224, 108, 117, 0.15); color: var(--red); }
+.persona-empty {
+  padding: 20px 16px;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+/* ── Content Area ── */
+.content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-card);
+  flex-shrink: 0;
+}
+.tab {
+  padding: 12px 20px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-dim);
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+.tab:hover { color: var(--text); }
+.tab.active {
+  color: var(--gold);
+  border-bottom-color: var(--gold);
+}
+.tab-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 32px;
+}
+
+/* ── Form Elements ── */
+.form-group {
+  margin-bottom: 20px;
+}
+.form-group label {
+  display: block;
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+.form-group label .required { color: var(--red); }
+input[type="text"], textarea, select {
+  width: 100%;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+input[type="text"]:focus, textarea:focus, select:focus {
+  border-color: var(--gold);
+}
+textarea {
+  resize: vertical;
+  min-height: 100px;
+  line-height: 1.6;
+}
+.char-count {
+  text-align: right;
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+.char-count.warn { color: var(--gold); }
+.char-count.over { color: var(--red); }
+
+.btn {
+  padding: 10px 24px;
+  border-radius: var(--radius);
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-primary {
+  background: var(--gold);
+  color: #1a1a1a;
+}
+.btn-primary:hover {
+  background: var(--gold-bright);
+}
+.btn-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.btn-secondary {
+  background: var(--bg-hover);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover {
+  border-color: var(--text-dim);
+}
+.btn-danger {
+  background: transparent;
+  color: var(--red);
+  border: 1px solid rgba(224, 108, 117, 0.3);
+}
+.btn-danger:hover {
+  background: rgba(224, 108, 117, 0.1);
+}
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.checkbox-row input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--gold);
+}
+.checkbox-row label {
+  margin: 0;
+  color: var(--text);
+  cursor: pointer;
+}
+
+/* ── Audio Player Bar ── */
+.player-bar {
+  background: var(--bg-card);
+  border-top: 1px solid var(--border);
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+}
+.player-bar audio {
+  flex: 1;
+  height: 36px;
+}
+.player-bar .now-playing {
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.player-bar .download-btn {
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  color: var(--cyan);
+  padding: 8px 14px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 13px;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+.player-bar .download-btn:hover {
+  border-color: var(--cyan);
+}
+
+/* ── Audio List ── */
+.audio-grid {
+  display: grid;
+  gap: 12px;
+}
+.audio-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: border-color 0.2s;
+}
+.audio-card:hover {
+  border-color: var(--text-dim);
+}
+.audio-card .play-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  color: var(--gold);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+.audio-card .play-btn:hover {
+  background: var(--gold);
+  color: #1a1a1a;
+}
+.audio-card .play-btn.playing {
+  background: var(--gold);
+  color: #1a1a1a;
+}
+.audio-card .info {
+  flex: 1;
+  min-width: 0;
+}
+.audio-card .filename {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.audio-card .meta {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+.audio-card .actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.audio-card .action-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 6px 10px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+.audio-card .action-btn:hover {
+  color: var(--text);
+  border-color: var(--text-dim);
+}
+.audio-card .action-btn.dl:hover {
+  color: var(--cyan);
+  border-color: var(--cyan);
+}
+.audio-card .action-btn.del:hover {
+  color: var(--red);
+  border-color: var(--red);
+}
+
+/* ── Modal ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.modal-overlay.show { display: flex; }
+.modal {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  width: 480px;
+  max-width: 90vw;
+}
+.modal h3 {
+  font-size: 16px;
+  color: var(--gold);
+  margin-bottom: 16px;
+}
+.modal .form-group { margin-bottom: 14px; }
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}
+.file-drop {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.file-drop:hover, .file-drop.dragover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+.file-drop input { display: none; }
+.file-drop .filename {
+  color: var(--cyan);
+  margin-top: 4px;
+}
+
+/* ── Toast ── */
+.toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 20px;
+  font-size: 13px;
+  z-index: 200;
+  opacity: 0;
+  transform: translateX(20px);
+  transition: all 0.3s;
+  max-width: 400px;
+}
+.toast.show { opacity: 1; transform: translateX(0); }
+.toast.success { border-color: var(--green); color: var(--green); }
+.toast.error { border-color: var(--red); color: var(--red); }
+.toast.info { border-color: var(--cyan); color: var(--cyan); }
+
+/* ── Loading ── */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 14, 20, 0.85);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 16px;
+  z-index: 150;
+}
+.loading-overlay.show { display: flex; }
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid var(--border);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text {
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+/* ── Empty State ── */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-dim);
+}
+.empty-state .icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+  opacity: 0.3;
+}
+.empty-state .title {
+  font-size: 16px;
+  margin-bottom: 6px;
+}
+.empty-state .desc {
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* ── Hint Box ── */
+.hint-box {
+  background: rgba(86, 182, 194, 0.08);
+  border: 1px solid rgba(86, 182, 194, 0.2);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--cyan);
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+/* ── Selected Persona Display ── */
+.selected-persona {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+}
+.selected-persona .label {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.selected-persona .name {
+  font-size: 14px;
+  color: var(--gold);
+  font-weight: 500;
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header>
+  <h1><span class="icon">🎙️</span> 声音编辑器</h1>
+  <div class="status-bar" id="statusBar">
+    <div class="status-pill" id="baseStatus">
+      <span class="status-dot"></span>
+      <span>Base 模型</span>
+    </div>
+    <div class="status-pill" id="designStatus">
+      <span class="status-dot"></span>
+      <span>Design 模型</span>
+    </div>
+  </div>
+</header>
+
+<!-- Main -->
+<div class="main">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <h2>音色库</h2>
+      <button class="add-btn" onclick="showAddPersonaModal()">+ 添加</button>
+    </div>
+    <div class="persona-list" id="personaList">
+      <div class="persona-empty">暂无音色<br>点击「添加」注册</div>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+    <div class="tabs">
+      <div class="tab active" data-tab="clone" onclick="switchTab('clone')">克隆合成</div>
+      <div class="tab" data-tab="design" onclick="switchTab('design')">音色设计</div>
+      <div class="tab" data-tab="library" onclick="switchTab('library')">音频库</div>
+    </div>
+
+    <div class="tab-content" id="tabContent">
+      <!-- Clone Tab -->
+      <div id="cloneTab">
+        <div class="hint-box" id="cloneHint">
+          💡 从左侧选择一个音色，输入文本即可生成语音。首次生成需要加载模型（约10秒）。
+        </div>
+        <div class="selected-persona" id="selectedPersona" style="display:none;">
+          <span class="label">当前音色:</span>
+          <span class="name" id="selectedPersonaName">-</span>
+        </div>
+        <div class="form-group">
+          <label>音色 Key</label>
+          <input type="text" id="clonePersona" placeholder="如 shui_yan（从左侧选择或手动输入）">
+        </div>
+        <div class="form-group">
+          <label>合成文本 <span class="required">*</span></label>
+          <textarea id="cloneText" placeholder="输入要合成的文本..." oninput="updateCharCount('cloneText','cloneCount',400)"></textarea>
+          <div class="char-count" id="cloneCount">0 / 400</div>
+        </div>
+        <div class="form-group">
+          <label>语气描述（可选）</label>
+          <input type="text" id="cloneTone" placeholder="如：温柔、沉稳">
+        </div>
+        <div class="form-group">
+          <label>情绪标签（可选）</label>
+          <input type="text" id="cloneEmotion" placeholder="如：Happy、Sad、慵懒">
+        </div>
+        <div class="form-group">
+          <div class="checkbox-row">
+            <input type="checkbox" id="cloneEmotionPriority">
+            <label for="cloneEmotionPriority">情绪优先（忽略基础音色描述，仅用上方填写的语气/情绪）</label>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="doClone()" id="cloneBtn">🎙️ 开始合成</button>
+      </div>
+
+      <!-- Design Tab -->
+      <div id="designTab" style="display:none;">
+        <div class="hint-box">
+          💡 用文字描述设计一个全新的音色，不依赖参考音频。需要 VoiceDesign 模型。
+        </div>
+        <div class="form-group">
+          <label>音色名称 <span class="required">*</span></label>
+          <input type="text" id="designName" placeholder="如：小镜、旁白君">
+        </div>
+        <div class="form-group">
+          <label>建模短句（可选，留空用默认）</label>
+          <textarea id="designText" placeholder="这是一段用于音色建模的短句，请保持自然呼吸。" oninput="updateCharCount('designText','designCount',45)" style="min-height:60px;"></textarea>
+          <div class="char-count" id="designCount">0 / 45</div>
+        </div>
+        <div class="form-group">
+          <label>音色描述 <span class="required">*</span></label>
+          <input type="text" id="designTone" placeholder="如：年轻女性，温柔贴耳，说话带笑意">
+        </div>
+        <div class="form-group">
+          <label>情绪描述（可选）</label>
+          <input type="text" id="designEmotion" placeholder="如：温柔、安抚">
+        </div>
+        <div class="form-group">
+          <div class="checkbox-row">
+            <input type="checkbox" id="designCommit">
+            <label for="designCommit">满意后存入标准样音库（注册为可复用音色）</label>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="doDesign()" id="designBtn">🎨 设计音色</button>
+      </div>
+
+      <!-- Library Tab -->
+      <div id="libraryTab" style="display:none;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <h3 style="font-size:15px;color:var(--text);">已生成音频</h3>
+          <button class="btn btn-secondary" onclick="loadAudioList()">🔄 刷新</button>
+        </div>
+        <div class="audio-grid" id="audioGrid">
+          <div class="empty-state">
+            <div class="icon">🎵</div>
+            <div class="title">暂无音频</div>
+            <div class="desc">生成的音频会出现在这里</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Player Bar -->
+<div class="player-bar" id="playerBar" style="display:none;">
+  <div class="now-playing" id="nowPlaying">-</div>
+  <audio id="audioPlayer" controls></audio>
+  <a class="download-btn" id="downloadBtn" href="#" download>⬇ 下载</a>
+</div>
+
+<!-- Add Persona Modal -->
+<div class="modal-overlay" id="addPersonaModal">
+  <div class="modal">
+    <h3>添加音色</h3>
+    <div class="form-group">
+      <label>音色 Key（英文/拼音）<span class="required">*</span></label>
+      <input type="text" id="addKey" placeholder="如 shui_yan">
+    </div>
+    <div class="form-group">
+      <label>显示名称（可选）</label>
+      <input type="text" id="addName" placeholder="如 水烟（默认等于 Key）">
+    </div>
+    <div class="form-group">
+      <label>音色描述（可选）</label>
+      <input type="text" id="addInstruction" placeholder="如：极致软糯，带有慵懒撒娇的气息">
+    </div>
+    <div class="form-group">
+      <label>参考音频 <span class="required">*</span></label>
+      <div class="file-drop" onclick="document.getElementById('addAudio').click()">
+        <div>点击或拖拽音频文件到此处</div>
+        <div class="filename" id="addAudioName"></div>
+        <input type="file" id="addAudio" accept=".wav,.mp3,.m4a,.flac,.ogg,.aac">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="hideAddPersonaModal()">取消</button>
+      <button class="btn btn-primary" onclick="doAddPersona()">注册</button>
+    </div>
+  </div>
+</div>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loadingText">处理中...</div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── State ──
+let selectedPersona = null;
+let currentTab = 'clone';
+let personas = {};
+
+// ── Init ──
+document.addEventListener('DOMContentLoaded', () => {
+  checkStatus();
+  loadPersonas();
+  loadAudioList();
+
+  // File drop handlers
+  const dropZone = document.querySelector('.file-drop');
+  if (dropZone) {
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file) {
+        document.getElementById('addAudio').files = e.dataTransfer.files;
+        document.getElementById('addAudioName').textContent = file.name;
+      }
+    });
+  }
+
+  document.getElementById('addAudio').addEventListener('change', e => {
+    document.getElementById('addAudioName').textContent = e.target.files[0]?.name || '';
+  });
+});
+
+// ── Status ──
+async function checkStatus() {
+  try {
+    const res = await fetch('/api/status');
+    const data = await res.json();
+    updateStatusPill('baseStatus', data.base_model, data.base_loaded, data.base_downloading);
+    updateStatusPill('designStatus', data.design_model, data.design_loaded, data.design_downloading);
+  } catch (e) {
+    console.error('Status check failed:', e);
+  }
+}
+
+function updateStatusPill(id, modelExists, loaded, downloading) {
+  const pill = document.getElementById(id);
+  const dot = pill.querySelector('.status-dot');
+  if (loaded) {
+    dot.className = 'status-dot ok';
+    pill.title = '已加载';
+  } else if (downloading) {
+    dot.className = 'status-dot loading';
+    pill.title = '模型下载中...';
+  } else if (modelExists) {
+    dot.className = 'status-dot loading';
+    pill.title = '模型已下载，首次使用时加载';
+  } else {
+    dot.className = 'status-dot err';
+    pill.title = '模型未下载';
+  }
+}
+
+// ── Personas ──
+async function loadPersonas() {
+  try {
+    const res = await fetch('/api/personas');
+    const data = await res.json();
+    personas = data.personas || {};
+    renderPersonas();
+  } catch (e) {
+    showToast('加载音色列表失败: ' + e.message, 'error');
+  }
+}
+
+function renderPersonas() {
+  const list = document.getElementById('personaList');
+  const keys = Object.keys(personas);
+
+  if (keys.length === 0) {
+    list.innerHTML = '<div class="persona-empty">暂无音色<br>点击「添加」注册</div>';
+    return;
+  }
+
+  list.innerHTML = keys.map(key => {
+    const p = personas[key];
+    const name = p.name || key;
+    const hasTemp = p.has_temp;
+    const hasRef = p.has_ref;
+    return `
+      <div class="persona-item ${selectedPersona === key ? 'active' : ''}" onclick="selectPersona('${key}')">
+        <div class="name">${name}</div>
+        <div class="key">${key}</div>
+        <div class="badges">
+          <span class="badge ${hasTemp ? 'ok' : 'no'}">${hasTemp ? '✓ 样音' : '✗ 样音'}</span>
+          <span class="badge ${hasRef ? 'ok' : 'no'}">${hasRef ? '✓ 参考' : '✗ 参考'}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function selectPersona(key) {
+  selectedPersona = key;
+  const p = personas[key];
+  const name = p?.name || key;
+  document.getElementById('clonePersona').value = key;
+  document.getElementById('selectedPersona').style.display = 'flex';
+  document.getElementById('selectedPersonaName').textContent = `${name} (${key})`;
+  renderPersonas();
+}
+
+// ── Tabs ──
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.getElementById('cloneTab').style.display = tab === 'clone' ? '' : 'none';
+  document.getElementById('designTab').style.display = tab === 'design' ? '' : 'none';
+  document.getElementById('libraryTab').style.display = tab === 'library' ? '' : 'none';
+  if (tab === 'library') loadAudioList();
+}
+
+// ── Clone ──
+async function doClone() {
+  const persona = document.getElementById('clonePersona').value.trim();
+  const text = document.getElementById('cloneText').value.trim();
+  const tone = document.getElementById('cloneTone').value.trim();
+  const emotion = document.getElementById('cloneEmotion').value.trim();
+  const emotionPriority = document.getElementById('cloneEmotionPriority').checked;
+
+  if (!persona) { showToast('请选择或输入音色 Key', 'error'); return; }
+  if (!text) { showToast('请输入合成文本', 'error'); return; }
+  if (text.length > 400) { showToast(`文本过长（${text.length} > 400）`, 'error'); return; }
+
+  showLoading('正在合成语音...\n首次生成需要加载模型，请耐心等待');
+  document.getElementById('cloneBtn').disabled = true;
+
+  try {
+    const res = await fetch('/api/clone', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ persona, text, tone, emotion, emotion_priority: emotionPriority }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || '合成失败');
+
+    showToast('合成成功！', 'success');
+    playAudio(data.url, data.filename);
+    loadAudioList();
+  } catch (e) {
+    showToast('合成失败: ' + e.message, 'error');
+  } finally {
+    hideLoading();
+    document.getElementById('cloneBtn').disabled = false;
+  }
+}
+
+// ── Design ──
+async function doDesign() {
+  const voiceName = document.getElementById('designName').value.trim();
+  const text = document.getElementById('designText').value.trim();
+  const tone = document.getElementById('designTone').value.trim();
+  const emotion = document.getElementById('designEmotion').value.trim();
+  const commit = document.getElementById('designCommit').checked;
+
+  if (!voiceName) { showToast('请输入音色名称', 'error'); return; }
+  if (!tone && !emotion) { showToast('请填写音色描述或情绪描述', 'error'); return; }
+
+  showLoading('正在设计音色...\n首次生成需要加载模型，请耐心等待');
+  document.getElementById('designBtn').disabled = true;
+
+  try {
+    const res = await fetch('/api/design', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ voice_name: voiceName, text, tone, emotion, commit }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || '设计失败');
+
+    showToast(commit ? '音色设计成功并已入库！' : '音色设计成功！', 'success');
+    playAudio(data.url, data.filename);
+    loadAudioList();
+    if (commit) loadPersonas();
+  } catch (e) {
+    showToast('设计失败: ' + e.message, 'error');
+  } finally {
+    hideLoading();
+    document.getElementById('designBtn').disabled = false;
+  }
+}
+
+// ── Audio List ──
+async function loadAudioList() {
+  try {
+    const res = await fetch('/api/audio-list');
+    const data = await res.json();
+    const grid = document.getElementById('audioGrid');
+    const files = data.files || [];
+
+    if (files.length === 0) {
+      grid.innerHTML = `
+        <div class="empty-state">
+          <div class="icon">🎵</div>
+          <div class="title">暂无音频</div>
+          <div class="desc">生成的音频会出现在这里</div>
+        </div>`;
+      return;
+    }
+
+    grid.innerHTML = files.map(f => `
+      <div class="audio-card">
+        <button class="play-btn" onclick="playAudio('${f.url}', '${f.filename}')">▶</button>
+        <div class="info">
+          <div class="filename">${f.filename}</div>
+          <div class="meta">${f.created} · ${f.size_mb} MB</div>
+        </div>
+        <div class="actions">
+          <a class="action-btn dl" href="${f.url}" download>⬇ 下载</a>
+          <button class="action-btn del" onclick="deleteAudio('${f.filename}')">🗑 删除</button>
+        </div>
+      </div>
+    `).join('');
+  } catch (e) {
+    showToast('加载音频列表失败', 'error');
+  }
+}
+
+async function deleteAudio(filename) {
+  if (!confirm(`确认删除 ${filename}？`)) return;
+  try {
+    await fetch(`/api/audio/${encodeURIComponent(filename)}`, { method: 'DELETE' });
+    showToast('已删除', 'success');
+    loadAudioList();
+  } catch (e) {
+    showToast('删除失败', 'error');
+  }
+}
+
+// ── Player ──
+function playAudio(url, filename) {
+  const player = document.getElementById('audioPlayer');
+  const bar = document.getElementById('playerBar');
+  const nowPlaying = document.getElementById('nowPlaying');
+  const dlBtn = document.getElementById('downloadBtn');
+
+  player.src = url;
+  player.play();
+  bar.style.display = 'flex';
+  nowPlaying.textContent = filename;
+  dlBtn.href = url;
+  dlBtn.download = filename;
+}
+
+// ── Add Persona ──
+function showAddPersonaModal() {
+  document.getElementById('addPersonaModal').classList.add('show');
+}
+function hideAddPersonaModal() {
+  document.getElementById('addPersonaModal').classList.remove('show');
+  document.getElementById('addKey').value = '';
+  document.getElementById('addName').value = '';
+  document.getElementById('addInstruction').value = '';
+  document.getElementById('addAudio').value = '';
+  document.getElementById('addAudioName').textContent = '';
+}
+
+async function doAddPersona() {
+  const key = document.getElementById('addKey').value.trim();
+  const name = document.getElementById('addName').value.trim();
+  const instruction = document.getElementById('addInstruction').value.trim();
+  const fileInput = document.getElementById('addAudio');
+
+  if (!key) { showToast('请输入音色 Key', 'error'); return; }
+  if (!fileInput.files[0]) { showToast('请选择参考音频', 'error'); return; }
+
+  showLoading('正在注册音色...');
+  const formData = new FormData();
+  formData.append('key', key);
+  formData.append('name', name || key);
+  formData.append('instruction', instruction);
+  formData.append('audio', fileInput.files[0]);
+
+  try {
+    const res = await fetch('/api/personas/add', { method: 'POST', body: formData });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || '注册失败');
+    showToast(`音色 ${data.name} 注册成功！`, 'success');
+    hideAddPersonaModal();
+    loadPersonas();
+  } catch (e) {
+    showToast('注册失败: ' + e.message, 'error');
+  } finally {
+    hideLoading();
+  }
+}
+
+// ── Helpers ──
+function updateCharCount(textId, countId, max) {
+  const text = document.getElementById(textId).value;
+  const count = document.getElementById(countId);
+  count.textContent = `${text.length} / ${max}`;
+  count.className = 'char-count' + (text.length > max ? ' over' : text.length > max * 0.8 ? ' warn' : '');
+}
+
+function showLoading(text) {
+  document.getElementById('loadingText').textContent = text;
+  document.getElementById('loadingOverlay').classList.add('show');
+}
+function hideLoading() {
+  document.getElementById('loadingOverlay').classList.remove('show');
+}
+
+let toastTimer;
+function showToast(msg, type = 'info') {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.className = `toast ${type} show`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 4000);
+}
+</script>
+</body>
+</html>

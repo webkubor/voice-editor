@@ -16,6 +16,20 @@ app.command("clone")(tts_clone)
 app.command("design")(tts_design)
 
 
+@app.command("web")
+def web(
+    port: int = typer.Option(8866, "--port", "-p", help="端口号"),
+    host: str = typer.Option("0.0.0.0", "--host", help="监听地址"),
+):
+    """启动 Web UI（本地浏览器操作）"""
+    import uvicorn
+    typer.echo(typer.style("=" * 50, fg=typer.colors.GOLD1))
+    typer.echo(typer.style("  声音编辑器 Web UI", fg=typer.colors.GOLD1, bold=True))
+    typer.echo(typer.style(f"  http://localhost:{port}", fg=typer.colors.CYAN))
+    typer.echo(typer.style("=" * 50, fg=typer.colors.GOLD1))
+    uvicorn.run("web.app:app", host=host, port=port, reload=False)
+
+
 @app.callback(invoke_without_command=True)
 def main(ctx: typer.Context):
     """
@@ -25,6 +39,7 @@ def main(ctx: typer.Context):
       voice      音色素材管理（list / add / preview / show / rm / import）
       clone      从已有音色克隆合成
       design     从文字描述设计新音色
+      web        启动 Web UI
       preset     预设管理（list / show / run / batch）
       job        任务历史（list / show / clean）
     """

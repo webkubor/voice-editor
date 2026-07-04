@@ -58,8 +58,25 @@ voice dialogue --script scripts/chapter_01.txt
 | 音色设计（文字描述） | ✅ | `voice design <name> "短句" --tone` |
 | 多角色对话生成 | ✅ | `voice dialogue --script` |
 | 音色列表管理 | ✅ | `voice voice list` |
+| **Web UI** | ✅ | `voice web` |
 | 环境自检 | 🚧 | `voice doctor`（Phase 2）|
-| WebUI | 📋 | Phase 3 |
+
+---
+
+## Web UI
+
+不想敲命令行？启动本地 Web 界面，浏览器里点一点就能用：
+
+```bash
+voice web
+# → http://localhost:8866
+```
+
+功能：
+- 左侧音色库管理（上传参考音频 → 自动注册）
+- 克隆合成（选音色 → 输入文本 → 在线试听 → 下载）
+- 音色设计（文字描述 → 生成全新音色 → 入库复用）
+- 音频库（历史生成列表 → 播放 / 下载 / 删除）
 
 ---
 
@@ -77,6 +94,7 @@ voice dialogue --script scripts/chapter_01.txt
 voice-editor/
 ├── cli/            # CLI 入口与子命令
 ├── core/           # 语音引擎 / 模式调度 / 音频处理
+├── web/            # Web UI（FastAPI + 前端单页）
 ├── configs/        # 运行配置与 personas 映射
 ├── assets/         # 参考音频 / 标准样音 / 产出
 ├── models/         # 本地模型目录
@@ -102,8 +120,8 @@ Agent 调用前请先确认 `source .venv/bin/activate` 已执行，或使用 `.
 
 - [x] Phase 1 — 命名统一、README 清晰化
 - [x] Phase 2a — CLI 稳定（clone / design / dialogue / voice list）
+- [x] Phase 3 — WebUI MVP（上传音频 / 试听 / 下载）
 - [ ] Phase 2b — `voice doctor` 环境自检
-- [ ] Phase 3 — WebUI MVP（上传音频 / 试听 / 下载）
 - [ ] Phase 4 — Agent 无交互安装模式
 
 ---
