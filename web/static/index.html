@@ -652,6 +652,10 @@ textarea {
         <div class="hint-box">
           💡 用文字描述设计一个全新的音色，不依赖参考音频。需要 VoiceDesign 模型。
         </div>
+        <div id="designPresetsBox" style="margin-bottom:24px;">
+          <h3 style="font-size:13px;color:var(--text-dim);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px;">预设配方（点击套用）</h3>
+          <div id="designPresetList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;"></div>
+        </div>
         <div class="form-group">
           <label>音色名称 <span class="required">*</span></label>
           <input type="text" id="designName" placeholder="如：小镜、旁白君">
@@ -748,6 +752,7 @@ textarea {
 let selectedPersona = null;
 let currentTab = 'clone';
 let personas = {};
+let designPresets = [];
 
 // ── Init ──
 document.addEventListener('DOMContentLoaded', () => {
@@ -812,7 +817,9 @@ async function loadPersonas() {
     const res = await fetch('/api/personas');
     const data = await res.json();
     personas = data.personas || {};
+    designPresets = data.presets || [];
     renderPersonas();
+    renderDesignPresets();
   } catch (e) {
     showToast('加载音色列表失败: ' + e.message, 'error');
   }
@@ -832,6 +839,7 @@ function renderPersonas() {
     const name = p.name || key;
     const hasTemp = p.has_temp;
     const hasRef = p.has_ref;
+    const source = p.source === 'generated' ? '预设' : '已注册';
     return `
       <div class="persona-item ${selectedPersona === key ? 'active' : ''}" onclick="selectPersona('${key}')">
         <div class="name">${name}</div>
@@ -839,6 +847,7 @@ function renderPersonas() {
         <div class="badges">
           <span class="badge ${hasTemp ? 'ok' : 'no'}">${hasTemp ? '✓ 样音' : '✗ 样音'}</span>
           <span class="badge ${hasRef ? 'ok' : 'no'}">${hasRef ? '✓ 参考' : '✗ 参考'}</span>
+          <span class="badge ok" style="background:rgba(212,160,82,0.15);color:var(--gold);">${source}</span>
         </div>
       </div>
     `;
@@ -852,7 +861,40 @@ function selectPersona(key) {
   document.getElementById('clonePersona').value = key;
   document.getElementById('selectedPersona').style.display = 'flex';
   document.getElementById('selectedPersonaName').textContent = `${name} (${key})`;
+  // 如果有 instruction，自动填入语气
+  if (p?.instruction) {
+    document.getElementById('cloneTone').value = p.instruction;
+  }
   renderPersonas();
+}
+
+function renderDesignPresets() {
+  const box = document.getElementById('designPresetList');
+  if (!box) return;
+  if (designPresets.length === 0) {
+    document.getElementById('designPresetsBox').style.display = 'none';
+    return;
+  }
+  document.getElementById('designPresetsBox').style.display = '';
+  box.innerHTML = designPresets.map((p, i) => `
+    <div class="persona-item" onclick="applyPreset(${i})" style="cursor:pointer;">
+      <div class="name">${p.voice_name}</div>
+      <div class="key" style="font-size:10px;line-height:1.4;max-height:28px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${p.tone || p.emotion || ''}</div>
+    </div>
+  `).join('');
+}
+
+function applyPreset(idx) {
+  const p = designPresets[idx];
+  if (!p) return;
+  document.getElementById('designName').value = p.voice_name;
+  document.getElementById('designTone').value = p.tone || '';
+  document.getElementById('designEmotion').value = p.emotion || '';
+  if (p.text) {
+    document.getElementById('designText').value = p.text;
+    updateCharCount('designText', 'designCount', 45);
+  }
+  showToast(`已套用配方：${p.voice_name}`, 'info');
 }
 
 // ── Tabs ──
