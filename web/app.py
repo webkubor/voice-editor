@@ -31,6 +31,7 @@ OUT_DIR = BASE_DIR / "out"
 TEMP_DIR = BASE_DIR / "assets" / "temp"
 REF_DIR = BASE_DIR / "assets" / "reference_audio"
 PERSONAS_FILE = BASE_DIR / "configs" / "personas.json"
+SCRIPTS_FILE = BASE_DIR / "configs" / "scripts.json"
 MODELS_DIR = BASE_DIR / "models"
 
 for d in [OUT_DIR, TEMP_DIR, REF_DIR]:
@@ -145,6 +146,11 @@ class PersonaAddRequest(BaseModel):
     key: str
     name: Optional[str] = None
     instruction: Optional[str] = ""
+
+
+class ScriptSaveRequest(BaseModel):
+    title: str
+    content: str
 
 
 # ── FastAPI 应用 ──────────────────────────────────────────
@@ -513,6 +519,80 @@ async def design(req: DesignRequest):
         raise HTTPException(500, str(e))
     except Exception as e:
         raise HTTPException(500, f"设计失败: {e}")
+
+
+@app.get("/api/scripts")
+async def list_scripts():
+    """列出所有保存的文案"""
+    if not SCRIPTS_FILE.exists():
+        return {"scripts": []}
+    try:
+        with open(SCRIPTS_FILE, "r", encoding="utf-8") as f:
+            return {"scripts": json.load(f)}
+    except Exception:
+        return {"scripts": []}
+
+
+@app.post("/api/scripts")
+async def save_script(req: ScriptSaveRequest):
+    """保存文案到文案库"""
+    if not req.content.strip():
+        raise HTTPException(400, "文案内容不能为空")
+
+    # 读取现有
+    if SCRIPTS_FILE.exists():
+        try:
+            with open(SCRIPTS_FILE, "r", encoding="utf-8") as f:
+                scripts = json.load(f)
+        except Exception:
+            scripts = []
+    else:
+        scripts = []
+
+    # 去重：如果标题相同则更新内容
+    title = req.title.strip() or req.content[:20].strip() + "..."
+    found = False
+    for s in scripts:
+        if s.get("title") == title:
+            s["content"] = req.content.strip()
+            s["updated"] = datetime.now().strftime("%Y-%m-%d %H:%M")
+            found = True
+            break
+    if not found:
+        scripts.insert(0, {
+            "id": uuid.uuid4().hex[:8],
+            "title": title,
+            "content": req.content.strip(),
+            "created": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "updated": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        })
+
+    with open(SCRIPTS_FILE, "w", encoding="utf-8") as f:
+        json.dump(scripts, f, ensure_ascii=False, indent=2)
+
+    return {"ok": True, "scripts": scripts}
+
+
+@app.delete("/api/scripts/{script_id}")
+async def delete_script(script_id: str):
+    """删除文案"""
+    if not SCRIPTS_FILE.exists():
+        raise HTTPException(404, "文案库不存在")
+    try:
+        with open(SCRIPTS_FILE, "r", encoding="utf-8") as f:
+            scripts = json.load(f)
+    except Exception:
+        scripts = []
+
+    before = len(scripts)
+    scripts = [s for s in scripts if s.get("id") != script_id]
+    if len(scripts) == before:
+        raise HTTPException(404, "文案不存在")
+
+    with open(SCRIPTS_FILE, "w", encoding="utf-8") as f:
+        json.dump(scripts, f, ensure_ascii=False, indent=2)
+
+    return {"ok": True, "scripts": scripts}
 
 
 @app.get("/api/audio-list")

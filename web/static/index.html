@@ -620,6 +620,81 @@ textarea {
   font-weight: 500;
 }
 
+/* ── Script Library ── */
+.script-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.script-bar h3 {
+  font-size: 13px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  flex: 1;
+}
+.script-save-btn {
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  color: var(--gold);
+  padding: 4px 12px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.script-save-btn:hover {
+  border-color: var(--gold);
+  background: rgba(212,160,82,0.1);
+}
+.script-list {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.script-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  cursor: pointer;
+  transition: all 0.15s;
+  font-size: 13px;
+  color: var(--text);
+  max-width: 240px;
+}
+.script-chip:hover {
+  border-color: var(--gold);
+  background: var(--bg-hover);
+}
+.script-chip .chip-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.script-chip .chip-del {
+  color: var(--text-dim);
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 2px;
+  flex-shrink: 0;
+}
+.script-chip .chip-del:hover {
+  color: var(--red);
+}
+.script-empty-hint {
+  font-size: 12px;
+  color: var(--text-dim);
+  padding: 6px 0;
+}
 /* ── Preset Grid ── */
 .preset-grid {
   display: grid;
@@ -713,6 +788,14 @@ textarea {
         <div class="form-group">
           <label>音色 Key</label>
           <input type="text" id="clonePersona" placeholder="如 shui_yan（从左侧选择或手动输入）">
+        </div>
+        <!-- 文案库 -->
+        <div class="script-bar">
+          <h3>📋 文案库</h3>
+          <button class="script-save-btn" onclick="saveCurrentScript()">💾 存当前文案</button>
+        </div>
+        <div class="script-list" id="scriptList">
+          <div class="script-empty-hint">暂无保存的文案，写好后点「存当前文案」即可保存</div>
         </div>
         <div class="form-group">
           <label>合成文本 <span class="required">*</span></label>
@@ -847,6 +930,7 @@ let selectedPersona = null;
 let currentTab = 'clone';
 let personas = {};
 let designPresets = [];
+let savedScripts = [];
 let modelStatus = {
   base: { ready: false, downloading: false, loaded: false, progress: null },
   design: { ready: false, downloading: false, loaded: false, progress: null },
@@ -857,6 +941,7 @@ document.addEventListener('DOMContentLoaded', () => {
   checkStatus();
   loadPersonas();
   loadAudioList();
+  loadScripts();
 
   // Auto-refresh status every 10s (for download progress)
   setInterval(checkStatus, 10000);
@@ -1097,6 +1182,76 @@ function switchTab(tab) {
   document.getElementById('designTab').style.display = tab === 'design' ? '' : 'none';
   document.getElementById('libraryTab').style.display = tab === 'library' ? '' : 'none';
   if (tab === 'library') loadAudioList();
+}
+
+// ── Script Library ──
+async function loadScripts() {
+  try {
+    const res = await fetch('/api/scripts');
+    const data = await res.json();
+    savedScripts = data.scripts || [];
+    renderScripts();
+  } catch (e) {
+    console.error('Load scripts failed:', e);
+  }
+}
+
+function renderScripts() {
+  const box = document.getElementById('scriptList');
+  if (savedScripts.length === 0) {
+    box.innerHTML = '<div class="script-empty-hint">暂无保存的文案，写好后点「存当前文案」即可保存</div>';
+    return;
+  }
+  box.innerHTML = savedScripts.map(s => `
+    <div class="script-chip" onclick="loadScript('${s.id}')" title="${s.content.replace(/"/g, '&quot;').slice(0, 60)}...">
+      <span class="chip-title">${s.title}</span>
+      <span class="chip-del" onclick="event.stopPropagation(); deleteScript('${s.id}')">&times;</span>
+    </div>
+  `).join('');
+}
+
+function loadScript(id) {
+  const s = savedScripts.find(x => x.id === id);
+  if (!s) return;
+  document.getElementById('cloneText').value = s.content;
+  updateCharCount('cloneText', 'cloneCount', 400);
+  showToast(`已载入：${s.title}`, 'info');
+}
+
+async function saveCurrentScript() {
+  const text = document.getElementById('cloneText').value.trim();
+  if (!text) {
+    showToast('文本框为空，无内容可保存', 'error');
+    return;
+  }
+  const title = text.slice(0, 15).replace(/\n/g, ' ').trim() + (text.length > 15 ? '...' : '');
+  try {
+    const res = await fetch('/api/scripts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, content: text }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || '保存失败');
+    savedScripts = data.scripts || [];
+    renderScripts();
+    showToast('文案已保存', 'success');
+  } catch (e) {
+    showToast('保存失败: ' + e.message, 'error');
+  }
+}
+
+async function deleteScript(id) {
+  try {
+    const res = await fetch(`/api/scripts/${id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || '删除失败');
+    savedScripts = data.scripts || [];
+    renderScripts();
+    showToast('已删除', 'success');
+  } catch (e) {
+    showToast('删除失败: ' + e.message, 'error');
+  }
 }
 
 // ── Clone ──
