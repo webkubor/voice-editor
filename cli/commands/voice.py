@@ -72,7 +72,7 @@ def voice_list():
     personas = _load_personas()
     if not personas:
         console.print(
-            "[yellow]音色库为空，请先使用 snowvoice voice add <key> <audio> 注册音色。[/yellow]"
+            "[yellow]音色库为空，请先使用 voice voice add <key> <audio> 注册音色。[/yellow]"
         )
         return
 

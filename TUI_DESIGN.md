@@ -1,10 +1,10 @@
-# TUI 设计文档 — SnowVoice Studio
+# TUI 设计文档 — 声音编辑器
 
-> 本文档描述将 SnowVoice Studio 改造为 TUI（终端用户界面）CLI 服务的完整设计方案。
+> 本文档描述将声音编辑器改造为 TUI（终端用户界面）CLI 服务的完整设计方案。
 > 目标：在现有 `core/` 后端不变的前提下，用 `typer` + `rich` + `textual` 构建一套
 > 本地音色素材管理 + TTS 生产工作流的终端交互系统。
 >
-> 说明：本文档里历史上出现的旧命令别名 `bsm`，现统一视为 `snowvoice`。
+> 说明：本文档里历史上出现的旧命令别名 `bsm`，现统一视为 `voice`。
 
 ---
 
@@ -152,7 +152,7 @@ CLI 入口（typer）
 
 ### 音色注册表
 
-路径：`~/.config/snowvoice-studio/registry.json`（或项目内 `configs/personas.json`）
+路径：`~/.config/voice-editor/registry.json`（或项目内 `configs/personas.json`）
 
 ```json
 {
@@ -233,16 +233,16 @@ CLI 入口（typer）
 新增文件，现有 `core/` 不动：
 
 ```
-snowvoice-studio/
+voice-editor/
 ├── cli/                         # 新增：CLI 主体
 │   ├── __init__.py
 │   ├── app.py                   # typer App 定义，子命令注册
 │   ├── commands/
-│   │   ├── voice.py             # bsm voice 子命令组
-│   │   ├── tts.py               # bsm tts 子命令组
-│   │   ├── preset.py            # bsm preset 子命令组
-│   │   └── job.py               # bsm job 子命令组
-│   └── tui/                     # bsm ui 全屏界面
+│   │   ├── voice.py             # voice voice 子命令组
+│   │   ├── tts.py               # voice tts 子命令组
+│   │   ├── preset.py            # voice preset 子命令组
+│   │   └── job.py               # voice job 子命令组
+│   └── tui/                     # voice ui 全屏界面
 │       ├── app.py               # textual.App 主类
 │       ├── screens/
 │       │   ├── voice_screen.py  # 音色库面板

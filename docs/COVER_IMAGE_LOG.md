@@ -2,7 +2,7 @@
 
 ## 2026-04-14
 
-- Purpose: redesign the repository hero cover for `SnowVoice Studio`
+- Purpose: redesign the repository hero cover for `Voice Editor`
 - Final file: `assets/cover.jpg`
 - Selected source: `assets/generated/cover-2026-04-14/candidate-1.jpg`
 - Previous cover backup: `assets/generated/cover-2026-04-14/cover-before-2026-04-14.jpg`

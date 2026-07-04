@@ -19,26 +19,26 @@ pip install -e .
 ## 2. CLI 主入口
 
 ```bash
-snowvoice --help
+voice --help
 ```
 
 常用命令：
 
 ```bash
 # 查看音色库
-snowvoice voice list
+voice voice list
 
 # 查看预设
-snowvoice preset list
+voice preset list
 
 # 查看任务历史
-snowvoice job list
+voice job list
 
 # 从已有音色克隆
-snowvoice clone <persona> "你好，欢迎使用 SnowVoice Studio"
+voice clone <persona> "你好，欢迎使用声音编辑器"
 
 # 从文字描述设计新音色
-snowvoice design <voice_name> "这是一段建模短句" --tone "温柔、清晰、贴耳"
+voice design <voice_name> "这是一段建模短句" --tone "温柔、清晰、贴耳"
 ```
 
 ## 3. 兼容入口
@@ -77,8 +77,8 @@ python main.py dialogue
 git status --short
 
 # 看安装后的 CLI 是否存在
-which snowvoice
+which voice
 
 # 检查 Python 包是否已安装
-pip show snowvoice-studio
+pip show voice-editor
 ```

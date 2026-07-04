@@ -11,8 +11,8 @@
 
 ## 调用方式
 - 推荐：
-  - `snowvoice clone ...`
-  - `snowvoice design ...`
+  - `voice clone ...`
+  - `voice design ...`
   - `python main.py dialogue`
 
 ## 规则

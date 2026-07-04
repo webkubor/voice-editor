@@ -1,4 +1,4 @@
-# SnowVoice Studio
+# 声音编辑器
 
 > "本地跑中文 TTS，不是 Python 版本对不上，就是模型只支持普通话，
 > 要么命令行一片空白。配了一下午，听到的第一句话是机器人读错字。"
@@ -7,25 +7,25 @@
 给人类用，也给 AI / agent 直接调用。
 
 <p align="center">
-  <img src="assets/cover.jpg" width="100%" alt="SnowVoice Studio"/>
+  <img src="assets/cover.jpg" width="100%" alt="声音编辑器"/>
 </p>
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-green.svg)](pyproject.toml)
 [![Platform](https://img.shields.io/badge/Platform-macOS%20Apple%20Silicon-black.svg)](pyproject.toml)
 
-[English README](README_EN.md) · 姊妹项目：[snow-asr](../snow-asr)（语音转文字）
+[English README](README_EN.md) · 姊妹项目：[asr-studio](https://github.com/webkubor/asr-studio)（语音转文字）
 
 ---
 
 ## 一分钟装好
 
 ```bash
-git clone https://github.com/webkubor/snowvoice-studio.git
-cd snowvoice-studio
+git clone https://github.com/webkubor/voice-editor.git
+cd voice-editor
 chmod +x install.sh && ./install.sh
 source .venv/bin/activate
-snowvoice --help
+voice --help
 ```
 
 脚本自动完成：创建 `.venv` → 安装依赖 → 下载基础模型。
@@ -36,15 +36,15 @@ snowvoice --help
 
 ```bash
 # 克隆已有角色音色生成台词
-snowvoice clone narrator "霜叶红于二月花，山色空蒙雨亦奇"
+voice clone narrator "霜叶红于二月花，山色空蒙雨亦奇"
 # → out/narrator_20260421_143201.wav  [2.3s]
 
 # 用文字描述设计新音色
-snowvoice design xiao_jing "这是一段建模短句" --tone "温柔、清晰、偏少女"
+voice design xiao_jing "这是一段建模短句" --tone "温柔、清晰、偏少女"
 # → voice 'xiao_jing' saved to personas.json
 
 # 多角色对白
-snowvoice dialogue --script scripts/chapter_01.txt
+voice dialogue --script scripts/chapter_01.txt
 # → out/dialogue_20260421_143502/  (5 files merged)
 ```
 
@@ -54,11 +54,11 @@ snowvoice dialogue --script scripts/chapter_01.txt
 
 | 功能 | 状态 | 命令 |
 |:---|:---:|:---|
-| 声音克隆（角色复用） | ✅ | `snowvoice clone <persona> "台词"` |
-| 音色设计（文字描述） | ✅ | `snowvoice design <name> "短句" --tone` |
-| 多角色对话生成 | ✅ | `snowvoice dialogue --script` |
-| 音色列表管理 | ✅ | `snowvoice voice list` |
-| 环境自检 | 🚧 | `snowvoice doctor`（Phase 2）|
+| 声音克隆（角色复用） | ✅ | `voice clone <persona> "台词"` |
+| 音色设计（文字描述） | ✅ | `voice design <name> "短句" --tone` |
+| 多角色对话生成 | ✅ | `voice dialogue --script` |
+| 音色列表管理 | ✅ | `voice voice list` |
+| 环境自检 | 🚧 | `voice doctor`（Phase 2）|
 | WebUI | 📋 | Phase 3 |
 
 ---
@@ -74,7 +74,7 @@ snowvoice dialogue --script scripts/chapter_01.txt
 ## 项目结构
 
 ```
-snowvoice-studio/
+voice-editor/
 ├── cli/            # CLI 入口与子命令
 ├── core/           # 语音引擎 / 模式调度 / 音频处理
 ├── configs/        # 运行配置与 personas 映射
@@ -91,10 +91,10 @@ snowvoice-studio/
 
 ```bash
 # Claude Code 调用示例
-snowvoice clone <persona> "<台词>" -o <output.wav>
+voice clone <persona> "<台词>" -o <output.wav>
 ```
 
-Agent 调用前请先确认 `source .venv/bin/activate` 已执行，或使用 `.venv/bin/snowvoice`。
+Agent 调用前请先确认 `source .venv/bin/activate` 已执行，或使用 `.venv/bin/voice`。
 
 ---
 
@@ -102,7 +102,7 @@ Agent 调用前请先确认 `source .venv/bin/activate` 已执行，或使用 `.
 
 - [x] Phase 1 — 命名统一、README 清晰化
 - [x] Phase 2a — CLI 稳定（clone / design / dialogue / voice list）
-- [ ] Phase 2b — `snowvoice doctor` 环境自检
+- [ ] Phase 2b — `voice doctor` 环境自检
 - [ ] Phase 3 — WebUI MVP（上传音频 / 试听 / 下载）
 - [ ] Phase 4 — Agent 无交互安装模式
 

@@ -13,8 +13,8 @@ Thanks for your interest in contributing!
 ## Development Setup
 
 ```bash
-git clone https://github.com/webkubor/snowvoice-studio.git
-cd snowvoice-studio
+git clone https://github.com/webkubor/voice-editor.git
+cd voice-editor
 # Follow the Quick Start in README
 ```
 

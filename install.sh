@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "❄️ Welcome to SnowVoice Studio Setup / 欢迎使用 SnowVoice Studio 安装向导 ❄️"
+echo "🎙️ 欢迎使用声音编辑器 (Voice Editor) 安装向导 🎙️"
 echo "=========================================================================="
 
 # 1. Check for Python
@@ -36,6 +36,6 @@ echo "7. Downloading Base Models (1.7B Recommended)..."
 python -m modelscope.cli.cli download --model Qwen/Qwen3-TTS-12Hz-1.7B-Base --local_dir ./models/Base-1.7B
 
 echo "=========================================================================="
-echo "✨ Setup Complete! / 安装完成！"
+echo "✨ 安装完成！"
 echo "解码器（Tokenizer）已随模型自动下载。"
-echo "To start: source .venv/bin/activate && snowvoice --help"
+echo "To start: source .venv/bin/activate && voice --help"

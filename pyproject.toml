@@ -3,9 +3,9 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "snowvoice-studio"
-version = "0.1.0"
-description = "Open-source Chinese TTS workstation for humans, AI, and agents. CLI first, WebUI on the roadmap."
+name = "voice-editor"
+version = "0.2.0"
+description = "声音编辑器 — 本地中文 TTS 工作台，面向人类、AI 与 agent。"
 readme = "README.md"
 requires-python = ">=3.10"
 classifiers = [
@@ -36,11 +36,11 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/webkubor/snowvoice-studio"
-Repository = "https://github.com/webkubor/snowvoice-studio"
+Homepage = "https://github.com/webkubor/voice-editor"
+Repository = "https://github.com/webkubor/voice-editor"
 
 [project.scripts]
-snowvoice = "cli.app:app"
+voice = "cli.app:app"
 tts = "cli.app:app"
 qwen-tts-demo = "qwen_tts.cli.demo:main"
 
