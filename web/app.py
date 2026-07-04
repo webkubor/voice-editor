@@ -12,6 +12,7 @@ import json
 import re
 import threading
 import time
+import queue as queue_mod
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -43,6 +44,238 @@ _base_engine = None
 _design_engine = None
 _processor = None
 _model_status = {"base": False, "design": False, "loading": False, "error": ""}
+
+# ── 异步任务队列 ──────────────────────────────────────────
+_task_queue: queue_mod.Queue = queue_mod.Queue()
+_tasks: dict[str, dict] = {}  # task_id -> task info
+_tasks_lock = threading.Lock()
+_worker_started = False
+
+
+def _submit_task(task_type: str, label: str, params: dict) -> str:
+    """提交一个异步任务，返回 task_id"""
+    task_id = uuid.uuid4().hex[:8]
+    task = {
+        "id": task_id,
+        "type": task_type,  # "clone" | "design"
+        "label": label,
+        "status": "queued",  # queued | running | done | error | cancelled
+        "progress": 0,       # 0-100
+        "stage": "",         # "加载模型中..." | "生成音频中..." | ""
+        "params": params,
+        "result": None,      # 成功时的返回数据
+        "error": None,       # 失败时的错误信息
+        "created_at": datetime.now().strftime("%H:%M:%S"),
+        "completed_at": None,
+    }
+    with _tasks_lock:
+        _tasks[task_id] = task
+    _task_queue.put(task_id)
+    _ensure_worker()
+    return task_id
+
+
+def _update_task(task_id: str, **kwargs):
+    """更新任务状态"""
+    with _tasks_lock:
+        if task_id not in _tasks:
+            return
+        _tasks[task_id].update(kwargs)
+
+
+def _ensure_worker():
+    """确保 worker 线程已启动"""
+    global _worker_started
+    if _worker_started:
+        return
+    _worker_started = True
+    t = threading.Thread(target=_task_worker, daemon=True)
+    t.start()
+
+
+def _task_worker():
+    """后台 worker：从队列取任务执行"""
+    while True:
+        task_id = _task_queue.get()
+        if task_id is None:
+            break
+        with _tasks_lock:
+            task = _tasks.get(task_id)
+            if task is None or task["status"] == "cancelled":
+                continue
+            task["status"] = "running"
+
+        try:
+            if task["type"] == "clone":
+                _run_clone_task(task_id, task["params"], _update_task)
+            elif task["type"] == "design":
+                _run_design_task(task_id, task["params"], _update_task)
+        except Exception as e:
+            _update_task(task_id, status="error", error=str(e),
+                         completed_at=datetime.now().strftime("%H:%M:%S"))
+
+
+def _run_clone_task(task_id: str, params: dict, update_fn):
+    """执行克隆合成任务"""
+    import soundfile as sf
+    import torch
+    from core.modes.cloner import CloneMode
+    from core.utils import get_persona_map, get_persona_cn
+
+    req = CloneRequest(**params)
+    if not req.text.strip():
+        raise ValueError("文本不能为空")
+    if len(req.text) > 400:
+        raise ValueError(f"文本过长（{len(req.text)} > 400 字）")
+
+    persona_map = get_persona_map()
+    if req.persona not in persona_map:
+        raise ValueError(f"音色 {req.persona} 未注册")
+
+    pdata = persona_map[req.persona]
+    if not isinstance(pdata, dict):
+        pdata = {}
+    display_name = get_persona_cn(req.persona)
+
+    # 解析参考音频
+    ref_path = None
+    if req.reference_audio:
+        p = Path(req.reference_audio)
+        if not p.is_absolute():
+            p = BASE_DIR / req.reference_audio
+        if p.exists():
+            ref_path = p
+    if not ref_path:
+        temp_path = TEMP_DIR / f"当前参考_{display_name}.wav"
+        if temp_path.exists():
+            ref_path = temp_path
+    if not ref_path:
+        ref_rel = pdata.get("ref", "")
+        if ref_rel:
+            p = BASE_DIR / ref_rel
+            if p.exists():
+                ref_path = p
+    if not ref_path:
+        raise ValueError(
+            f"音色 {req.persona} 未找到参考音频。"
+            f"请先上传参考音频"
+        )
+
+    # 构建指令
+    base_instruct = pdata.get("instruction", "")
+    if req.emotion_priority:
+        final_instruct = (req.tone or req.emotion or "").strip()
+    else:
+        raw = " ".join(filter(None, [req.tone or "", req.emotion or ""]))
+        final_instruct = f"{base_instruct} {raw}".strip()
+
+    # 加载引擎
+    update_fn(task_id, progress=10, stage="加载模型中...")
+    engine = _get_base_engine()
+    processor = _get_processor()
+    cloner = CloneMode(engine, processor)
+
+    update_fn(task_id, progress=30, stage="生成音频中...")
+    torch.manual_seed(42)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(42)
+
+    wavs, sr = cloner.run(
+        persona=req.persona,
+        text=req.text,
+        lang="Chinese",
+        instruct=final_instruct,
+        emotion_priority=req.emotion_priority,
+        allow_ref_fallback=True,
+        reference_audio=str(ref_path),
+    )
+
+    update_fn(task_id, progress=80, stage="保存文件中...")
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    safe_name = re.sub(r"[^\w\u4e00-\u9fff-]", "_", display_name)
+    out_filename = f"[克隆]{safe_name}_{ts}.wav"
+    out_path = OUT_DIR / out_filename
+    sf.write(str(out_path), wavs[0], sr)
+    processor.apply_post_tuning(str(out_path))
+
+    update_fn(task_id, progress=100, stage="完成",
+              status="done",
+              result={
+                  "ok": True,
+                  "filename": out_filename,
+                  "url": f"/api/audio/{out_filename}",
+                  "persona": display_name,
+                  "text": req.text,
+              },
+              completed_at=datetime.now().strftime("%H:%M:%S"))
+
+
+def _run_design_task(task_id: str, params: dict, update_fn):
+    """执行音色设计任务"""
+    import soundfile as sf
+    from core.modes.designer import DesignMode
+    from core.utils import (
+        upsert_persona_mapping,
+        resolve_design_voice_key,
+        write_generation_json,
+    )
+
+    req = DesignRequest(**params)
+    if not (req.tone or req.emotion):
+        raise ValueError("必须提供 tone 或 emotion")
+    if not req.text.strip():
+        req.text = "这是一段用于音色建模的短句，请保持自然呼吸。"
+    if len(req.text) > 45:
+        raise ValueError(f"设计文本过长（{len(req.text)} > 45 字）")
+
+    instruct = " ".join(p.strip() for p in [req.tone, req.emotion] if p.strip())
+
+    update_fn(task_id, progress=10, stage="加载模型中...")
+    engine = _get_design_engine()
+    processor = _get_processor()
+    designer = DesignMode(engine, processor)
+
+    update_fn(task_id, progress=30, stage="设计音色中...")
+    wavs, sr = designer.run(text=req.text, lang="Chinese", instruct=instruct)
+
+    update_fn(task_id, progress=80, stage="保存文件中...")
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    safe_name = re.sub(r"[^\w\u4e00-\u9fff-]", "_", req.voice_name)
+    out_filename = f"[设计]{safe_name}_{ts}.wav"
+    out_path = OUT_DIR / out_filename
+    sf.write(str(out_path), wavs[0], sr)
+    processor.apply_design_cleanup(str(out_path))
+
+    result = {
+        "ok": True,
+        "filename": out_filename,
+        "url": f"/api/audio/{out_filename}",
+        "voice_name": req.voice_name,
+    }
+
+    if req.commit:
+        voice_key = resolve_design_voice_key({"voice_name": req.voice_name})
+        temp_seed_path = processor.extract_voice_seed(
+            str(out_path), req.voice_name, max_sec=10, skip_start_ms=0
+        )
+        ref_rel = os.path.relpath(str(temp_seed_path), str(BASE_DIR)).replace("\\", "/")
+        design_rel = f"voice_designs/{safe_name}.json"
+        upsert_persona_mapping(
+            str(BASE_DIR),
+            persona_key=voice_key,
+            persona_name=req.voice_name,
+            ref_rel=ref_rel,
+            design_rel=design_rel,
+            instruction=instruct,
+        )
+        write_generation_json(str(BASE_DIR), voice_key, source="voice_design")
+        result["committed"] = True
+        result["persona_key"] = voice_key
+
+    update_fn(task_id, progress=100, stage="完成",
+              status="done",
+              result=result,
+              completed_at=datetime.now().strftime("%H:%M:%S"))
 
 
 def _check_model_dir(model_type: str) -> bool:
@@ -353,172 +586,78 @@ async def delete_persona(key: str):
 
 @app.post("/api/clone")
 async def clone(req: CloneRequest):
-    """克隆合成"""
-    import soundfile as sf
-    import torch
-    from core.modes.cloner import CloneMode
-    from core.utils import get_persona_map, get_persona_cn
-
-    # 校验
+    """提交克隆合成任务（异步）"""
     if not req.text.strip():
         raise HTTPException(400, "文本不能为空")
     if len(req.text) > 400:
         raise HTTPException(400, f"文本过长（{len(req.text)} > 400 字）")
 
-    persona_map = get_persona_map()
-    if req.persona not in persona_map:
-        raise HTTPException(400, f"音色 {req.persona} 未注册，请先在 Web UI 上传参考音频")
+    label = req.text[:20].replace("\n", " ").strip()
+    if len(req.text) > 20:
+        label += "..."
 
-    pdata = persona_map[req.persona]
-    if not isinstance(pdata, dict):
-        pdata = {}
-    display_name = get_persona_cn(req.persona)
-
-    # 解析参考音频
-    ref_path = None
-    if req.reference_audio:
-        p = Path(req.reference_audio)
-        if not p.is_absolute():
-            p = BASE_DIR / req.reference_audio
-        if p.exists():
-            ref_path = p
-
-    if not ref_path:
-        temp_path = TEMP_DIR / f"当前参考_{display_name}.wav"
-        if temp_path.exists():
-            ref_path = temp_path
-
-    if not ref_path:
-        ref_rel = pdata.get("ref", "")
-        if ref_rel:
-            p = BASE_DIR / ref_rel
-            if p.exists():
-                ref_path = p
-
-    if not ref_path:
-        raise HTTPException(
-            400,
-            f"音色 {req.persona} 未找到参考音频。"
-            f"请先上传参考音频或检查 assets/temp/当前参考_{display_name}.wav"
-        )
-
-    # 构建指令
-    base_instruct = pdata.get("instruction", "")
-    if req.emotion_priority:
-        final_instruct = (req.tone or req.emotion or "").strip()
-    else:
-        raw = " ".join(filter(None, [req.tone or "", req.emotion or ""]))
-        final_instruct = f"{base_instruct} {raw}".strip()
-
-    try:
-        engine = _get_base_engine()
-        processor = _get_processor()
-        cloner = CloneMode(engine, processor)
-
-        # 生成
-        torch.manual_seed(42)
-        if torch.cuda.is_available():
-            torch.cuda.manual_seed_all(42)
-
-        wavs, sr = cloner.run(
-            persona=req.persona,
-            text=req.text,
-            lang="Chinese",
-            instruct=final_instruct,
-            emotion_priority=req.emotion_priority,
-            allow_ref_fallback=True,
-            reference_audio=str(ref_path),
-        )
-
-        # 保存
-        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-        safe_name = re.sub(r"[^\w\u4e00-\u9fff-]", "_", display_name)
-        out_filename = f"[克隆]{safe_name}_{ts}.wav"
-        out_path = OUT_DIR / out_filename
-        sf.write(str(out_path), wavs[0], sr)
-        processor.apply_post_tuning(str(out_path))
-
-        return {
-            "ok": True,
-            "filename": out_filename,
-            "url": f"/api/audio/{out_filename}",
-            "persona": display_name,
-            "text": req.text,
-        }
-    except RuntimeError as e:
-        raise HTTPException(500, str(e))
-    except Exception as e:
-        raise HTTPException(500, f"合成失败: {e}")
+    task_id = _submit_task("clone", label, req.model_dump())
+    return {"task_id": task_id, "status": "queued"}
 
 
 @app.post("/api/design")
 async def design(req: DesignRequest):
-    """音色设计"""
-    import soundfile as sf
-    from core.modes.designer import DesignMode
-    from core.utils import (
-        upsert_persona_mapping,
-        resolve_design_voice_key,
-        write_generation_json,
-        sanitize_path_component,
-    )
-
+    """提交音色设计任务（异步）"""
     if not (req.tone or req.emotion):
         raise HTTPException(400, "必须提供 tone 或 emotion（至少一个）")
-
-    if not req.text.strip():
-        req.text = "这是一段用于音色建模的短句，请保持自然呼吸。"
-    if len(req.text) > 45:
+    if req.text and len(req.text) > 45:
         raise HTTPException(400, f"设计文本过长（{len(req.text)} > 45 字）")
 
-    instruct = " ".join(p.strip() for p in [req.tone, req.emotion] if p.strip())
+    label = f"{req.voice_name} — {req.tone or req.emotion}"
+    task_id = _submit_task("design", label, req.model_dump())
+    return {"task_id": task_id, "status": "queued"}
 
-    try:
-        engine = _get_design_engine()
-        processor = _get_processor()
-        designer = DesignMode(engine, processor)
 
-        wavs, sr = designer.run(text=req.text, lang="Chinese", instruct=instruct)
-
-        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-        safe_name = re.sub(r"[^\w\u4e00-\u9fff-]", "_", req.voice_name)
-        out_filename = f"[设计]{safe_name}_{ts}.wav"
-        out_path = OUT_DIR / out_filename
-        sf.write(str(out_path), wavs[0], sr)
-        processor.apply_design_cleanup(str(out_path))
-
-        result = {
-            "ok": True,
-            "filename": out_filename,
-            "url": f"/api/audio/{out_filename}",
-            "voice_name": req.voice_name,
+@app.get("/api/tasks")
+async def list_tasks():
+    """列出所有任务（按创建时间倒序）"""
+    with _tasks_lock:
+        tasks = sorted(
+            _tasks.values(),
+            key=lambda t: t["created_at"],
+            reverse=True,
+        )
+    # 清理超过 50 条的旧任务
+    if len(tasks) > 50:
+        old_ids = [t["id"] for t in tasks[50:]]
+        with _tasks_lock:
+            for tid in old_ids:
+                _tasks.pop(tid, None)
+        tasks = tasks[:50]
+    return {"tasks": [
+        {
+            "id": t["id"],
+            "type": t["type"],
+            "label": t["label"],
+            "status": t["status"],
+            "progress": t["progress"],
+            "stage": t["stage"],
+            "result": t["result"],
+            "error": t["error"],
+            "created_at": t["created_at"],
+            "completed_at": t["completed_at"],
         }
+        for t in tasks
+    ]}
 
-        # 如果 commit，沉淀到标准样音库
-        if req.commit:
-            voice_key = resolve_design_voice_key({"voice_name": req.voice_name})
-            temp_seed_path = processor.extract_voice_seed(
-                str(out_path), req.voice_name, max_sec=10, skip_start_ms=0
-            )
-            ref_rel = os.path.relpath(str(temp_seed_path), str(BASE_DIR)).replace("\\", "/")
-            design_rel = f"voice_designs/{safe_name}.json"
-            upsert_persona_mapping(
-                str(BASE_DIR),
-                persona_key=voice_key,
-                persona_name=req.voice_name,
-                ref_rel=ref_rel,
-                design_rel=design_rel,
-                instruction=instruct,
-            )
-            write_generation_json(str(BASE_DIR), voice_key, source="voice_design")
-            result["committed"] = True
-            result["persona_key"] = voice_key
 
-        return result
-    except RuntimeError as e:
-        raise HTTPException(500, str(e))
-    except Exception as e:
-        raise HTTPException(500, f"设计失败: {e}")
+@app.delete("/api/tasks/{task_id}")
+async def cancel_task(task_id: str):
+    """取消任务（仅 queued 状态可取消）"""
+    with _tasks_lock:
+        task = _tasks.get(task_id)
+        if task is None:
+            raise HTTPException(404, "任务不存在")
+        if task["status"] not in ("queued",):
+            raise HTTPException(400, f"任务正在执行或已完成，无法取消")
+        task["status"] = "cancelled"
+        task["completed_at"] = datetime.now().strftime("%H:%M:%S")
+    return {"ok": True}
 
 
 @app.get("/api/scripts")

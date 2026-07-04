@@ -1,0 +1,16 @@
+{
+  "type": "single",
+  "content_type": "movie",
+  "model_size": "1.7B",
+  "model_type": "Base",
+  "persona": "疏音-清冷月色",
+  "text": "请替换成你要生成的文案",
+  "tone": "",
+  "emotion": "",
+  "title": "疏音-清冷月色_标准音生成",
+  "episode": "GEN",
+  "meta": {
+    "created_from": "voice_design",
+    "standard_seed": "assets/temp/当前参考_疏音-清冷月色.wav"
+  }
+}
