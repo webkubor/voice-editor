@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "voice-editor"
 version = "0.2.0"
-description = "声音编辑器 — 本地中文 TTS 工作台，面向人类、AI 与 agent。"
+description = "VoxCraft 声坊 — 本地中文 TTS 工作台，面向人类、AI 与 agent。"
 readme = "README.md"
 requires-python = ">=3.10"
 classifiers = [

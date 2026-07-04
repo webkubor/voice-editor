@@ -43,7 +43,7 @@ for arg in "$@"; do
   esac
 done
 
-echo "🎙️  声音编辑器 (Voice Editor) 安装向导 🎙️"
+echo "🎙️  VoxCraft 声坊 安装向导 🎙️"
 echo "=========================================================================="
 if [ "$NON_INTERACTIVE" = true ]; then
   echo "[非交互模式] 跳过所有确认，全自动安装"

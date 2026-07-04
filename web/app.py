@@ -1,4 +1,4 @@
-"""声音编辑器 Web UI — FastAPI 后端
+"""VoxCraft 声坊 Web UI — FastAPI 后端
 
 启动方式:
     .venv/bin/python -m web.app
@@ -387,7 +387,7 @@ class ScriptSaveRequest(BaseModel):
 
 
 # ── FastAPI 应用 ──────────────────────────────────────────
-app = FastAPI(title="声音编辑器 Web UI", version="0.2.0")
+app = FastAPI(title="VoxCraft 声坊", version="0.2.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -814,7 +814,7 @@ async def delete_audio(filename: str):
 if __name__ == "__main__":
     import uvicorn
     print("=" * 50)
-    print("  声音编辑器 Web UI")
+    print("  VoxCraft 声坊 Web UI")
     print("  http://localhost:8866")
     print("=" * 50)
     uvicorn.run(app, host="0.0.0.0", port=8866)

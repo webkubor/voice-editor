@@ -35,7 +35,7 @@ voice preset list
 voice job list
 
 # 从已有音色克隆
-voice clone <persona> "你好，欢迎使用声音编辑器"
+voice clone <persona> "你好，欢迎使用VoxCraft 声坊"
 
 # 从文字描述设计新音色
 voice design <voice_name> "这是一段建模短句" --tone "温柔、清晰、贴耳"

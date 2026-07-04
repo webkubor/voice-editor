@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>声音编辑器</title>
+<title>VoxCraft 声坊</title>
+<link rel="icon" type="image/png" href="/assets/branding/logo-icon.png">
 <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
 <style>
 :root {
@@ -15,6 +16,7 @@
   --text-dim: #6b7785;
   --gold: #d4a052;
   --gold-bright: #f0c060;
+  --navy: #1a3a5c;
   --cyan: #56b6c2;
   --green: #98c379;
   --red: #e06c75;
@@ -37,14 +39,20 @@ html { height: 100vh; }
 /* Header */
 header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 20px; background: var(--bg-card);
+  padding: 10px 20px; background: var(--bg-card);
   border-bottom: 1px solid var(--border); flex-shrink: 0;
 }
 header h1 {
   font-size: 18px; font-weight: 600; color: var(--gold);
-  display: flex; align-items: center; gap: 8px;
+  display: flex; align-items: center; gap: 10px;
 }
-header h1 .icon { font-size: 22px; }
+header h1 .logo {
+  width: 32px; height: 32px; border-radius: 6px;
+  object-fit: contain;
+}
+header h1 .brand { display: flex; align-items: baseline; gap: 6px; }
+header h1 .brand .en { font-size: 18px; font-weight: 600; letter-spacing: 0.5px; }
+header h1 .brand .cn { font-size: 14px; color: var(--text-dim); font-weight: 500; }
 .status-bar { display: flex; gap: 12px; align-items: center; font-size: 12px; }
 .status-pill {
   display: flex; align-items: center; gap: 6px;
@@ -412,7 +420,13 @@ textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
 
 <!-- Header -->
 <header>
-  <h1><span class="icon">🎙️</span> 声音编辑器</h1>
+  <h1>
+    <img src="/assets/branding/logo-icon.png" class="logo" alt="VoxCraft 声坊">
+    <span class="brand">
+      <span class="en">VoxCraft</span>
+      <span class="cn">声坊</span>
+    </span>
+  </h1>
   <div class="status-bar">
     <div class="status-pill">
       <span :class="['status-dot', baseStatus.dot]"></span>

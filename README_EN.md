@@ -1,13 +1,17 @@
-# Voice Editor
+# VoxCraft 声坊
 
 An open-source Chinese TTS workstation built for humans, AI, and agents.
 
-> Current stage: **CLI works today, WebUI is planned next.**
+> Local-first voice cloning + voice design, powered by Qwen3-TTS.
 
-Voice Editor is a local-first wrapper around **Qwen3-TTS**. The goal is simple: install it once, run it locally, and make it easy for both non-technical users and automation agents to use the same workflow.
+VoxCraft is a local-first wrapper around **Qwen3-TTS**. The goal is simple: install it once, run it locally, and make it easy for both non-technical users and automation agents to use the same workflow.
 
 <p align="center">
-  <img src="assets/cover.jpg" width="100%" alt="Voice Editor Cover"/>
+  <img src="assets/branding/logo-icon.png" width="160" alt="VoxCraft logo"/>
+</p>
+
+<p align="center">
+  <img src="assets/branding/social-banner.png" width="100%" alt="VoxCraft — AI Voice Editor for Creators"/>
 </p>
 
 ## What it does today

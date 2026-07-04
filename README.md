@@ -1,11 +1,15 @@
-# 声音编辑器
+# VoxCraft 声坊
 
 > 本地运行的中文语音克隆 + 音色设计工具。  
 > 基于 **Qwen3-TTS**，一条命令出音频，无需联网、无需 API Key。  
 > 支持中文配音、声音克隆、文字设计新音色、多角色对话。给人类用，也给 AI / Agent 直接调用。
 
 <p align="center">
-  <img src="assets/cover.jpg" width="100%" alt="声音编辑器"/>
+  <img src="assets/branding/logo-icon.png" width="160" alt="VoxCraft 声坊 logo"/>
+</p>
+
+<p align="center">
+  <img src="assets/branding/social-banner.png" width="100%" alt="VoxCraft 声坊 — AI Voice Editor for Creators"/>
 </p>
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
