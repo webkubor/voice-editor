@@ -484,6 +484,40 @@ def _scan_design_presets() -> list:
     return result
 
 
+@app.get("/api/persona-audio/{key}")
+async def get_persona_audio(key: str):
+    """获取音色的参考音频（优先 temp 样音，其次原始 ref）"""
+    if not PERSONAS_FILE.exists():
+        raise HTTPException(404, "personas.json 不存在")
+    try:
+        with open(PERSONAS_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception:
+        raise HTTPException(500, "读取 personas.json 失败")
+
+    if key not in data:
+        raise HTTPException(404, f"音色 {key} 不存在")
+
+    pdata = data[key]
+    if not isinstance(pdata, dict):
+        pdata = {}
+    display_name = pdata.get("name", key)
+
+    # 优先 temp 样音
+    temp_path = TEMP_DIR / f"当前参考_{display_name}.wav"
+    if temp_path.exists():
+        return FileResponse(str(temp_path), media_type="audio/wav")
+
+    # 其次 ref
+    ref_rel = pdata.get("ref", "")
+    if ref_rel:
+        ref_path = BASE_DIR / ref_rel
+        if ref_path.exists():
+            return FileResponse(str(ref_path), media_type="audio/wav")
+
+    raise HTTPException(404, f"音色 {key} 没有可用的参考音频")
+
+
 @app.get("/api/personas")
 async def list_personas():
     """列出所有已注册音色 + 设计预设"""

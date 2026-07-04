@@ -86,11 +86,25 @@ header h1 .icon { font-size: 22px; }
 .add-btn:hover { border-color: var(--gold); background: rgba(212,160,82,0.1); }
 .persona-list { flex: 1; overflow-y: auto; padding: 4px 8px 8px; }
 .persona-item {
+  position: relative; overflow: hidden;
   padding: 10px 12px; border-radius: var(--radius); cursor: pointer;
   transition: all 0.15s; margin-bottom: 2px; border: 1px solid transparent;
 }
 .persona-item:hover { background: var(--bg-hover); }
 .persona-item.active { background: var(--bg-hover); border-color: var(--gold); }
+.persona-item .progress-bg {
+  position: absolute; top: 0; left: 0; height: 100%;
+  background: linear-gradient(90deg, rgba(212,160,82,0.15), rgba(212,160,82,0.05));
+  pointer-events: none; transition: width 0.1s linear; z-index: 0;
+}
+.persona-item.playing { border-color: var(--gold); }
+.persona-item.playing .name { color: var(--gold); }
+.persona-item > * { position: relative; z-index: 1; }
+.persona-item .play-icon {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  font-size: 14px; color: var(--gold); z-index: 2; opacity: 0.7;
+}
+.persona-item.playing .play-icon { opacity: 1; }
 .persona-item .name { font-size: 14px; font-weight: 500; color: var(--text); }
 .persona-item .key { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
 .persona-item .badges { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
@@ -424,8 +438,9 @@ textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
         暂无音色<br>点击「+ 添加」上传参考音频<br>或用「音色设计」生成
       </div>
       <div v-for="(p, key) in personas" :key="key"
-           :class="['persona-item', { active: selectedPersona === key }]"
-           @click="selectPersona(key)">
+           :class="['persona-item', { active: selectedPersona === key, playing: previewKey === key }]"
+           @click="togglePreview(key)">
+        <div class="progress-bg" :style="{ width: previewKey === key ? previewProgress + '%' : '0%' }"></div>
         <div class="name">{{ p.name || key }}</div>
         <div class="key">{{ key }}</div>
         <div class="badges">
@@ -433,6 +448,7 @@ textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
           <span :class="['badge', p.has_ref ? 'ok' : 'no']">{{ p.has_ref ? '✓ 参考' : '✗ 参考' }}</span>
           <span class="badge gold">{{ p.source === 'registered' ? '已注册' : '预设' }}</span>
         </div>
+        <span class="play-icon">{{ previewKey === key ? '❚❚' : '▶' }}</span>
       </div>
     </div>
   </div>
@@ -609,6 +625,9 @@ textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
   <a class="download-btn" :href="player.url" :download="player.filename">⬇ 下载</a>
 </div>
 
+<!-- Persona Preview Audio (hidden) -->
+<audio ref="previewPlayer" @timeupdate="onPreviewProgress" @ended="onPreviewEnded" style="display:none"></audio>
+
 <!-- Add Persona Modal -->
 <div :class="['modal-overlay', { show: showAddPersona }]">
   <div class="modal">
@@ -761,6 +780,10 @@ createApp({
       // Player
       player: { url: '', filename: '', visible: false },
 
+      // Persona preview
+      previewKey: null,
+      previewProgress: 0,
+
       // Toast
       toast: { msg: '', type: 'info', visible: false },
       _toastTimer: null,
@@ -884,6 +907,46 @@ createApp({
       if (p && p.instruction) {
         this.cloneForm.tone = p.instruction;
       }
+    },
+
+    async togglePreview(key) {
+      // 如果点击正在播放的卡片 → 暂停
+      if (this.previewKey === key) {
+        const el = this.$refs.previewPlayer;
+        if (el && !el.paused) {
+          el.pause();
+          this.previewKey = null;
+          this.previewProgress = 0;
+          return;
+        }
+      }
+
+      // 选中音色（给克隆表单用）
+      this.selectPersona(key);
+
+      // 播放参考音频
+      const el = this.$refs.previewPlayer;
+      if (!el) return;
+      el.src = `/api/persona-audio/${encodeURIComponent(key)}`;
+      this.previewKey = key;
+      this.previewProgress = 0;
+      try {
+        await el.play();
+      } catch (e) {
+        this.showToast('该音色没有可播放的参考音频', 'error');
+        this.previewKey = null;
+      }
+    },
+
+    onPreviewProgress() {
+      const el = this.$refs.previewPlayer;
+      if (!el || !el.duration || el.duration === Infinity) return;
+      this.previewProgress = (el.currentTime / el.duration) * 100;
+    },
+
+    onPreviewEnded() {
+      this.previewKey = null;
+      this.previewProgress = 0;
     },
 
     applyPreset(idx) {
