@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>声音编辑器</title>
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
 <style>
 :root {
   --bg: #0a0e14;
@@ -20,9 +21,7 @@
   --orange: #e5a532;
   --radius: 8px;
 }
-
 * { margin: 0; padding: 0; box-sizing: border-box; }
-
 body {
   font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
   background: var(--bg);
@@ -32,48 +31,28 @@ body {
   flex-direction: column;
   overflow: hidden;
 }
+[v-cloak] { display: none; }
 
-/* ── Header ── */
+/* Header */
 header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 20px;
-  background: var(--bg-card);
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 20px; background: var(--bg-card);
+  border-bottom: 1px solid var(--border); flex-shrink: 0;
 }
 header h1 {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--gold);
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  font-size: 18px; font-weight: 600; color: var(--gold);
+  display: flex; align-items: center; gap: 8px;
 }
 header h1 .icon { font-size: 22px; }
-header .status-bar {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  font-size: 12px;
-}
+.status-bar { display: flex; gap: 12px; align-items: center; font-size: 12px; }
 .status-pill {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  border-radius: 20px;
-  background: var(--bg-hover);
-  border: 1px solid var(--border);
-  white-space: nowrap;
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 12px; border-radius: 20px;
+  background: var(--bg-hover); border: 1px solid var(--border); white-space: nowrap;
 }
 .status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--text-dim);
-  flex-shrink: 0;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--text-dim); flex-shrink: 0;
 }
 .status-dot.ok { background: var(--green); }
 .status-dot.err { background: var(--red); }
@@ -84,827 +63,350 @@ header .status-bar {
 .status-text.downloading { color: var(--orange); }
 .status-text.missing { color: var(--red); }
 
-/* ── Main Layout ── */
-.main {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-}
-
-/* ── Sidebar ── */
+/* Layout */
+.main { display: flex; flex: 1; overflow: hidden; }
 .sidebar {
-  width: 260px;
-  background: var(--bg-card);
+  width: 260px; background: var(--bg-card);
   border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
+  display: flex; flex-direction: column; flex-shrink: 0;
 }
 .sidebar-header {
-  padding: 16px 16px 8px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  padding: 16px 16px 8px; display: flex;
+  justify-content: space-between; align-items: center;
 }
 .sidebar-header h2 {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-dim);
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  font-size: 13px; font-weight: 600; color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: 1px;
 }
-.sidebar-header .add-btn {
-  background: var(--bg-hover);
-  border: 1px solid var(--border);
-  color: var(--gold);
-  padding: 4px 10px;
-  border-radius: var(--radius);
-  cursor: pointer;
-  font-size: 12px;
-  transition: all 0.2s;
+.add-btn {
+  background: var(--bg-hover); border: 1px solid var(--border);
+  color: var(--gold); padding: 4px 10px; border-radius: var(--radius);
+  cursor: pointer; font-size: 12px; transition: all 0.2s;
 }
-.sidebar-header .add-btn:hover {
-  border-color: var(--gold);
-  background: rgba(212, 160, 82, 0.1);
-}
-.persona-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 4px 8px 8px;
-}
+.add-btn:hover { border-color: var(--gold); background: rgba(212,160,82,0.1); }
+.persona-list { flex: 1; overflow-y: auto; padding: 4px 8px 8px; }
 .persona-item {
-  padding: 10px 12px;
-  border-radius: var(--radius);
-  cursor: pointer;
-  transition: all 0.15s;
-  margin-bottom: 2px;
-  border: 1px solid transparent;
+  padding: 10px 12px; border-radius: var(--radius); cursor: pointer;
+  transition: all 0.15s; margin-bottom: 2px; border: 1px solid transparent;
 }
-.persona-item:hover {
-  background: var(--bg-hover);
-}
-.persona-item.active {
-  background: var(--bg-hover);
-  border-color: var(--gold);
-}
-.persona-item .name {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text);
-}
-.persona-item .key {
-  font-size: 11px;
-  color: var(--text-dim);
-  margin-top: 2px;
-}
-.persona-item .badges {
-  display: flex;
-  gap: 4px;
-  margin-top: 4px;
-  flex-wrap: wrap;
-}
-.badge {
-  font-size: 10px;
-  padding: 1px 6px;
-  border-radius: 4px;
-}
-.badge.ok { background: rgba(152, 195, 121, 0.15); color: var(--green); }
-.badge.no { background: rgba(224, 108, 117, 0.15); color: var(--red); }
+.persona-item:hover { background: var(--bg-hover); }
+.persona-item.active { background: var(--bg-hover); border-color: var(--gold); }
+.persona-item .name { font-size: 14px; font-weight: 500; color: var(--text); }
+.persona-item .key { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+.persona-item .badges { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
+.badge { font-size: 10px; padding: 1px 6px; border-radius: 4px; }
+.badge.ok { background: rgba(152,195,121,0.15); color: var(--green); }
+.badge.no { background: rgba(224,108,117,0.15); color: var(--red); }
 .badge.gold { background: rgba(212,160,82,0.15); color: var(--gold); }
 .persona-empty {
-  padding: 20px 16px;
-  text-align: center;
-  color: var(--text-dim);
-  font-size: 13px;
-  line-height: 1.8;
+  padding: 20px 16px; text-align: center;
+  color: var(--text-dim); font-size: 13px; line-height: 1.8;
 }
 
-/* ── Content Area ── */
-.content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
+/* Content */
+.content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 .tabs {
-  display: flex;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-card);
-  flex-shrink: 0;
+  display: flex; border-bottom: 1px solid var(--border);
+  background: var(--bg-card); flex-shrink: 0;
 }
 .tab {
-  padding: 12px 20px;
-  cursor: pointer;
-  font-size: 14px;
-  color: var(--text-dim);
-  border-bottom: 2px solid transparent;
-  transition: all 0.2s;
+  padding: 12px 20px; cursor: pointer; font-size: 14px;
+  color: var(--text-dim); border-bottom: 2px solid transparent; transition: all 0.2s;
 }
 .tab:hover { color: var(--text); }
-.tab.active {
-  color: var(--gold);
-  border-bottom-color: var(--gold);
-}
-.tab-content {
-  flex: 1;
-  overflow-y: auto;
-  padding: 24px 32px;
-}
+.tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+.tab-content { flex: 1; overflow-y: auto; padding: 24px 32px; }
 
-/* ── Form Elements ── */
-.form-group {
-  margin-bottom: 20px;
-}
+/* Form */
+.form-group { margin-bottom: 20px; }
 .form-group label {
-  display: block;
-  font-size: 13px;
-  color: var(--text-dim);
-  margin-bottom: 6px;
-  font-weight: 500;
+  display: block; font-size: 13px; color: var(--text-dim);
+  margin-bottom: 6px; font-weight: 500;
 }
 .form-group label .required { color: var(--red); }
 input[type="text"], textarea, select {
-  width: 100%;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  color: var(--text);
-  padding: 10px 14px;
-  border-radius: var(--radius);
-  font-size: 14px;
-  font-family: inherit;
-  outline: none;
-  transition: border-color 0.2s;
+  width: 100%; background: var(--bg-card); border: 1px solid var(--border);
+  color: var(--text); padding: 10px 14px; border-radius: var(--radius);
+  font-size: 14px; font-family: inherit; outline: none; transition: border-color 0.2s;
 }
-input[type="text"]:focus, textarea:focus, select:focus {
-  border-color: var(--gold);
-}
-textarea {
-  resize: vertical;
-  min-height: 100px;
-  line-height: 1.6;
-}
-.char-count {
-  text-align: right;
-  font-size: 11px;
-  color: var(--text-dim);
-  margin-top: 4px;
-}
+input[type="text"]:focus, textarea:focus, select:focus { border-color: var(--gold); }
+textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
+.char-count { text-align: right; font-size: 11px; color: var(--text-dim); margin-top: 4px; }
 .char-count.warn { color: var(--gold); }
 .char-count.over { color: var(--red); }
-
 .btn {
-  padding: 10px 24px;
-  border-radius: var(--radius);
-  border: none;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.2s;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  padding: 10px 24px; border-radius: var(--radius); border: none;
+  cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.2s;
+  display: inline-flex; align-items: center; gap: 6px;
 }
-.btn-primary {
-  background: var(--gold);
-  color: #1a1a1a;
-}
-.btn-primary:hover {
-  background: var(--gold-bright);
-}
-.btn-primary:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-  background: var(--text-dim);
-}
+.btn-primary { background: var(--gold); color: #1a1a1a; }
+.btn-primary:hover { background: var(--gold-bright); }
+.btn-primary:disabled { opacity: 0.3; cursor: not-allowed; background: var(--text-dim); }
 .btn-secondary {
-  background: var(--bg-hover);
-  color: var(--text);
-  border: 1px solid var(--border);
+  background: var(--bg-hover); color: var(--text); border: 1px solid var(--border);
 }
-.btn-secondary:hover {
-  border-color: var(--text-dim);
-}
-.btn-danger {
-  background: transparent;
-  color: var(--red);
-  border: 1px solid rgba(224, 108, 117, 0.3);
-}
-.btn-danger:hover {
-  background: rgba(224, 108, 117, 0.1);
-}
-.checkbox-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.checkbox-row input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  accent-color: var(--gold);
-}
-.checkbox-row label {
-  margin: 0;
-  color: var(--text);
-  cursor: pointer;
-}
+.btn-secondary:hover { border-color: var(--text-dim); }
+.checkbox-row { display: flex; align-items: center; gap: 8px; }
+.checkbox-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--gold); }
+.checkbox-row label { margin: 0; color: var(--text); cursor: pointer; }
 
-/* ── Warning Banner ── */
+/* Warning */
 .warn-banner {
-  background: rgba(224, 108, 117, 0.1);
-  border: 1px solid rgba(224, 108, 117, 0.3);
-  border-radius: var(--radius);
-  padding: 14px 16px;
-  font-size: 13px;
-  color: var(--red);
-  margin-bottom: 20px;
-  line-height: 1.6;
+  background: rgba(224,108,117,0.1); border: 1px solid rgba(224,108,117,0.3);
+  border-radius: var(--radius); padding: 14px 16px; font-size: 13px;
+  color: var(--red); margin-bottom: 20px; line-height: 1.6;
 }
 .warn-banner.download {
-  background: rgba(229, 165, 50, 0.1);
-  border-color: rgba(229, 165, 50, 0.3);
-  color: var(--orange);
+  background: rgba(229,165,50,0.1); border-color: rgba(229,165,50,0.3); color: var(--orange);
 }
 .warn-banner code {
-  background: rgba(0,0,0,0.3);
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 12px;
-  color: var(--cyan);
+  background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px;
+  font-size: 12px; color: var(--cyan);
 }
 .warn-banner .progress-bar {
-  margin-top: 8px;
-  height: 6px;
-  background: rgba(0,0,0,0.3);
-  border-radius: 3px;
-  overflow: hidden;
+  margin-top: 8px; height: 6px; background: rgba(0,0,0,0.3);
+  border-radius: 3px; overflow: hidden;
 }
 .warn-banner .progress-fill {
-  height: 100%;
-  background: var(--orange);
-  border-radius: 3px;
-  transition: width 0.5s;
+  height: 100%; background: var(--orange); border-radius: 3px; transition: width 0.5s;
 }
 
-/* ── Audio Player Bar ── */
+/* Player */
 .player-bar {
-  background: var(--bg-card);
-  border-top: 1px solid var(--border);
-  padding: 12px 20px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-shrink: 0;
+  background: var(--bg-card); border-top: 1px solid var(--border);
+  padding: 12px 20px; display: flex; align-items: center; gap: 16px; flex-shrink: 0;
 }
-.player-bar audio {
-  flex: 1;
-  height: 36px;
+.player-bar audio { flex: 1; height: 36px; }
+.now-playing {
+  font-size: 12px; color: var(--text-dim); white-space: nowrap;
+  max-width: 200px; overflow: hidden; text-overflow: ellipsis;
 }
-.player-bar .now-playing {
-  font-size: 12px;
-  color: var(--text-dim);
-  white-space: nowrap;
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.download-btn {
+  background: var(--bg-hover); border: 1px solid var(--border); color: var(--cyan);
+  padding: 8px 14px; border-radius: var(--radius); cursor: pointer;
+  font-size: 13px; text-decoration: none; transition: all 0.2s;
 }
-.player-bar .download-btn {
-  background: var(--bg-hover);
-  border: 1px solid var(--border);
-  color: var(--cyan);
-  padding: 8px 14px;
-  border-radius: var(--radius);
-  cursor: pointer;
-  font-size: 13px;
-  text-decoration: none;
-  transition: all 0.2s;
-}
-.player-bar .download-btn:hover {
-  border-color: var(--cyan);
-}
+.download-btn:hover { border-color: var(--cyan); }
 
-/* ── Audio List ── */
-.audio-grid {
-  display: grid;
-  gap: 12px;
-}
+/* Audio list */
+.audio-grid { display: grid; gap: 12px; }
 .audio-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 14px 16px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  transition: border-color 0.2s;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px 16px;
+  display: flex; align-items: center; gap: 12px; transition: border-color 0.2s;
 }
-.audio-card:hover {
-  border-color: var(--text-dim);
+.audio-card:hover { border-color: var(--text-dim); }
+.play-btn {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--bg-hover); border: 1px solid var(--border); color: var(--gold);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 16px; flex-shrink: 0; transition: all 0.2s;
 }
-.audio-card .play-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: var(--bg-hover);
-  border: 1px solid var(--border);
-  color: var(--gold);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  flex-shrink: 0;
-  transition: all 0.2s;
-}
-.audio-card .play-btn:hover {
-  background: var(--gold);
-  color: #1a1a1a;
-}
-.audio-card .play-btn.playing {
-  background: var(--gold);
-  color: #1a1a1a;
-}
-.audio-card .info {
-  flex: 1;
-  min-width: 0;
-}
+.play-btn:hover { background: var(--gold); color: #1a1a1a; }
+.audio-card .info { flex: 1; min-width: 0; }
 .audio-card .filename {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 13px; font-weight: 500; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.audio-card .meta {
-  font-size: 11px;
-  color: var(--text-dim);
-  margin-top: 2px;
+.audio-card .meta { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+.actions { display: flex; gap: 8px; flex-shrink: 0; }
+.action-btn {
+  background: transparent; border: 1px solid var(--border); color: var(--text-dim);
+  padding: 6px 10px; border-radius: var(--radius); cursor: pointer;
+  font-size: 12px; transition: all 0.2s; text-decoration: none;
 }
-.audio-card .actions {
-  display: flex;
-  gap: 8px;
-  flex-shrink: 0;
-}
-.audio-card .action-btn {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text-dim);
-  padding: 6px 10px;
-  border-radius: var(--radius);
-  cursor: pointer;
-  font-size: 12px;
-  transition: all 0.2s;
-}
-.audio-card .action-btn:hover {
-  color: var(--text);
-  border-color: var(--text-dim);
-}
-.audio-card .action-btn.dl:hover {
-  color: var(--cyan);
-  border-color: var(--cyan);
-}
-.audio-card .action-btn.del:hover {
-  color: var(--red);
-  border-color: var(--red);
-}
+.action-btn:hover { color: var(--text); border-color: var(--text-dim); }
+.action-btn.dl:hover { color: var(--cyan); border-color: var(--cyan); }
+.action-btn.del:hover { color: var(--red); border-color: var(--red); }
 
-/* ── Modal ── */
+/* Modal */
 .modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.7);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
+  position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+  display: none; align-items: center; justify-content: center; z-index: 100;
 }
 .modal-overlay.show { display: flex; }
 .modal {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 24px;
-  width: 480px;
-  max-width: 90vw;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 24px; width: 480px; max-width: 90vw;
 }
-.modal h3 {
-  font-size: 16px;
-  color: var(--gold);
-  margin-bottom: 16px;
-}
+.modal h3 { font-size: 16px; color: var(--gold); margin-bottom: 16px; }
 .modal .form-group { margin-bottom: 14px; }
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 20px;
-}
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
 .file-drop {
-  border: 2px dashed var(--border);
-  border-radius: var(--radius);
-  padding: 20px;
-  text-align: center;
-  color: var(--text-dim);
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s;
+  border: 2px dashed var(--border); border-radius: var(--radius);
+  padding: 20px; text-align: center; color: var(--text-dim);
+  font-size: 13px; cursor: pointer; transition: all 0.2s;
 }
-.file-drop:hover, .file-drop.dragover {
-  border-color: var(--gold);
-  color: var(--gold);
-}
+.file-drop:hover, .file-drop.dragover { border-color: var(--gold); color: var(--gold); }
 .file-drop input { display: none; }
-.file-drop .filename {
-  color: var(--cyan);
-  margin-top: 4px;
-}
+.file-drop .filename { color: var(--cyan); margin-top: 4px; }
 
-/* ── Toast ── */
+/* Toast */
 .toast {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 12px 20px;
-  font-size: 13px;
-  z-index: 200;
-  opacity: 0;
-  transform: translateX(20px);
-  transition: all 0.3s;
-  max-width: 400px;
+  position: fixed; top: 20px; right: 20px; background: var(--bg-card);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 12px 20px; font-size: 13px; z-index: 200;
+  opacity: 0; transform: translateX(20px); transition: all 0.3s; max-width: 400px;
 }
 .toast.show { opacity: 1; transform: translateX(0); }
 .toast.success { border-color: var(--green); color: var(--green); }
 .toast.error { border-color: var(--red); color: var(--red); }
 .toast.info { border-color: var(--cyan); color: var(--cyan); }
 
-/* ── Loading ── */
+/* Loading */
 .loading-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(10, 14, 20, 0.85);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  gap: 16px;
-  z-index: 150;
+  position: fixed; inset: 0; background: rgba(10,14,20,0.85);
+  display: none; align-items: center; justify-content: center;
+  flex-direction: column; gap: 16px; z-index: 150;
 }
 .loading-overlay.show { display: flex; }
 .spinner {
-  width: 48px;
-  height: 48px;
-  border: 3px solid var(--border);
-  border-top-color: var(--gold);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+  width: 48px; height: 48px; border: 3px solid var(--border);
+  border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
-.loading-text {
-  font-size: 14px;
-  color: var(--text-dim);
-}
+.loading-text { font-size: 14px; color: var(--text-dim); }
 
-/* ── Empty State ── */
-.empty-state {
-  text-align: center;
-  padding: 60px 20px;
-  color: var(--text-dim);
-}
-.empty-state .icon {
-  font-size: 48px;
-  margin-bottom: 12px;
-  opacity: 0.3;
-}
-.empty-state .title {
-  font-size: 16px;
-  margin-bottom: 6px;
-}
-.empty-state .desc {
-  font-size: 13px;
-  line-height: 1.6;
-}
+/* Empty */
+.empty-state { text-align: center; padding: 60px 20px; color: var(--text-dim); }
+.empty-state .icon { font-size: 48px; margin-bottom: 12px; opacity: 0.3; }
+.empty-state .title { font-size: 16px; margin-bottom: 6px; }
+.empty-state .desc { font-size: 13px; line-height: 1.6; }
 
-/* ── Task Panel ── */
+/* Task Panel */
 .task-panel {
-  position: fixed;
-  bottom: 0;
-  right: 0;
-  width: 380px;
-  max-height: 50vh;
-  background: var(--bg-card);
-  border-top: 1px solid var(--border);
-  border-left: 1px solid var(--border);
-  border-radius: 12px 0 0 0;
-  display: flex;
-  flex-direction: column;
-  z-index: 90;
-  transition: transform 0.3s;
+  position: fixed; bottom: 0; right: 0; width: 380px; max-height: 50vh;
+  background: var(--bg-card); border-top: 1px solid var(--border);
+  border-left: 1px solid var(--border); border-radius: 12px 0 0 0;
+  display: flex; flex-direction: column; z-index: 90; transition: transform 0.3s;
 }
-.task-panel.collapsed {
-  transform: translateY(calc(100% - 40px));
-}
+.task-panel.collapsed { transform: translateY(calc(100% - 40px)); }
 .task-panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 16px;
-  cursor: pointer;
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 16px; cursor: pointer; border-bottom: 1px solid var(--border); flex-shrink: 0;
 }
 .task-panel-header h3 {
-  font-size: 13px;
-  color: var(--gold);
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  font-size: 13px; color: var(--gold); display: flex; align-items: center; gap: 6px;
 }
-.task-panel-header .badge-count {
-  background: var(--bg-hover);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 1px 8px;
-  font-size: 11px;
-  color: var(--text-dim);
+.badge-count {
+  background: var(--bg-hover); border: 1px solid var(--border);
+  border-radius: 10px; padding: 1px 8px; font-size: 11px; color: var(--text-dim);
 }
-.task-panel-header .badge-count.active {
-  background: rgba(212,160,82,0.15);
-  border-color: var(--gold);
-  color: var(--gold);
-}
-.task-panel-header .toggle {
-  color: var(--text-dim);
-  font-size: 14px;
-  transition: transform 0.3s;
-}
-.task-panel.collapsed .toggle {
-  transform: rotate(180deg);
-}
-.task-panel-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 8px;
-}
-.task-panel-body:empty::before {
-  content: "暂无任务";
-  display: block;
-  text-align: center;
-  padding: 20px;
-  color: var(--text-dim);
-  font-size: 13px;
-}
+.badge-count.active { background: rgba(212,160,82,0.15); border-color: var(--gold); color: var(--gold); }
+.toggle { color: var(--text-dim); font-size: 14px; transition: transform 0.3s; }
+.task-panel.collapsed .toggle { transform: rotate(180deg); }
+.task-panel-body { flex: 1; overflow-y: auto; padding: 8px; }
+.task-empty { text-align: center; padding: 20px; color: var(--text-dim); font-size: 13px; }
 .task-card {
-  background: var(--bg-hover);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 10px 12px;
-  margin-bottom: 6px;
-  transition: border-color 0.2s;
+  background: var(--bg-hover); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 10px 12px; margin-bottom: 6px; transition: border-color 0.2s;
 }
-.task-card.done {
-  border-color: rgba(152,195,121,0.3);
+.task-card.done { border-color: rgba(152,195,121,0.3); }
+.task-card.error { border-color: rgba(224,108,117,0.3); }
+.task-header {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;
 }
-.task-card.error {
-  border-color: rgba(224,108,117,0.3);
+.task-label {
+  font-size: 13px; color: var(--text); white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; flex: 1;
 }
-.task-card .task-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 6px;
+.task-type { font-size: 10px; padding: 1px 6px; border-radius: 4px; margin-right: 8px; flex-shrink: 0; }
+.task-type.clone { background: rgba(86,182,194,0.15); color: var(--cyan); }
+.task-type.design { background: rgba(212,160,82,0.15); color: var(--gold); }
+.task-cancel {
+  background: none; border: none; color: var(--text-dim); cursor: pointer;
+  font-size: 14px; padding: 0 4px; flex-shrink: 0;
 }
-.task-card .task-label {
-  font-size: 13px;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  flex: 1;
-}
-.task-card .task-type {
-  font-size: 10px;
-  padding: 1px 6px;
-  border-radius: 4px;
-  margin-right: 8px;
-  flex-shrink: 0;
-}
-.task-card .task-type.clone { background: rgba(86,182,194,0.15); color: var(--cyan); }
-.task-card .task-type.design { background: rgba(212,160,82,0.15); color: var(--gold); }
-.task-card .task-cancel {
-  background: none;
-  border: none;
-  color: var(--text-dim);
-  cursor: pointer;
-  font-size: 14px;
-  padding: 0 4px;
-  flex-shrink: 0;
-}
-.task-card .task-cancel:hover { color: var(--red); }
-.task-card .task-stage {
-  font-size: 11px;
-  color: var(--text-dim);
-  margin-bottom: 4px;
-}
-.task-card .task-stage.running { color: var(--orange); }
-.task-card .task-stage.done { color: var(--green); }
-.task-card .task-stage.error { color: var(--red); }
-.task-card .task-progress-bar {
-  height: 4px;
-  background: rgba(0,0,0,0.3);
-  border-radius: 2px;
-  overflow: hidden;
-}
-.task-card .task-progress-fill {
-  height: 100%;
-  background: var(--orange);
-  border-radius: 2px;
-  transition: width 0.5s;
-}
+.task-cancel:hover { color: var(--red); }
+.task-stage { font-size: 11px; color: var(--text-dim); margin-bottom: 4px; }
+.task-stage.running { color: var(--orange); }
+.task-stage.done { color: var(--green); }
+.task-stage.error { color: var(--red); }
+.task-progress-bar { height: 4px; background: rgba(0,0,0,0.3); border-radius: 2px; overflow: hidden; }
+.task-progress-fill { height: 100%; background: var(--orange); border-radius: 2px; transition: width 0.5s; }
 .task-card.done .task-progress-fill { background: var(--green); }
 .task-card.error .task-progress-fill { background: var(--red); }
-.task-card .task-actions {
-  display: flex;
-  gap: 6px;
-  margin-top: 6px;
+.task-actions { display: flex; gap: 6px; margin-top: 6px; }
+.task-action-btn {
+  font-size: 11px; padding: 3px 8px; border-radius: 4px;
+  border: 1px solid var(--border); background: var(--bg-card);
+  color: var(--text-dim); cursor: pointer; transition: all 0.15s; text-decoration: none;
 }
-.task-card .task-action-btn {
-  font-size: 11px;
-  padding: 3px 8px;
-  border-radius: 4px;
-  border: 1px solid var(--border);
-  background: var(--bg-card);
-  color: var(--text-dim);
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.task-card .task-action-btn:hover {
-  color: var(--cyan);
-  border-color: var(--cyan);
-}
+.task-action-btn:hover { color: var(--cyan); border-color: var(--cyan); }
 
-/* ── Hint Box ── */
+/* Hint */
 .hint-box {
-  background: rgba(86, 182, 194, 0.08);
-  border: 1px solid rgba(86, 182, 194, 0.2);
-  border-radius: var(--radius);
-  padding: 10px 14px;
-  font-size: 12px;
-  color: var(--cyan);
-  margin-bottom: 20px;
-  line-height: 1.6;
+  background: rgba(86,182,194,0.08); border: 1px solid rgba(86,182,194,0.2);
+  border-radius: var(--radius); padding: 10px 14px; font-size: 12px;
+  color: var(--cyan); margin-bottom: 20px; line-height: 1.6;
 }
 
-/* ── Selected Persona Display ── */
+/* Selected persona */
 .selected-persona {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
-  background: var(--bg-hover);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  margin-bottom: 16px;
+  display: flex; align-items: center; gap: 8px; padding: 8px 14px;
+  background: var(--bg-hover); border: 1px solid var(--border);
+  border-radius: var(--radius); margin-bottom: 16px;
 }
-.selected-persona .label {
-  font-size: 12px;
-  color: var(--text-dim);
-}
-.selected-persona .name {
-  font-size: 14px;
-  color: var(--gold);
-  font-weight: 500;
-}
+.selected-persona .label { font-size: 12px; color: var(--text-dim); }
+.selected-persona .name { font-size: 14px; color: var(--gold); font-weight: 500; }
 
-/* ── Script Library ── */
-.script-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-}
+/* Script library */
+.script-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
 .script-bar h3 {
-  font-size: 13px;
-  color: var(--text-dim);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  flex: 1;
+  font-size: 13px; color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: 1px; flex: 1;
 }
 .script-save-btn {
-  background: var(--bg-hover);
-  border: 1px solid var(--border);
-  color: var(--gold);
-  padding: 4px 12px;
-  border-radius: var(--radius);
-  cursor: pointer;
-  font-size: 12px;
-  transition: all 0.2s;
-  white-space: nowrap;
+  background: var(--bg-hover); border: 1px solid var(--border); color: var(--gold);
+  padding: 4px 12px; border-radius: var(--radius); cursor: pointer;
+  font-size: 12px; transition: all 0.2s; white-space: nowrap;
 }
-.script-save-btn:hover {
-  border-color: var(--gold);
-  background: rgba(212,160,82,0.1);
-}
-.script-list {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 6px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
+.script-save-btn:hover { border-color: var(--gold); background: rgba(212,160,82,0.1); }
+.script-list { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 16px; flex-wrap: wrap; }
 .script-chip {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: var(--bg-card);
-  cursor: pointer;
-  transition: all 0.15s;
-  font-size: 13px;
-  color: var(--text);
-  max-width: 240px;
+  display: flex; align-items: center; gap: 6px; padding: 6px 12px;
+  border-radius: var(--radius); border: 1px solid var(--border);
+  background: var(--bg-card); cursor: pointer; transition: all 0.15s;
+  font-size: 13px; color: var(--text); max-width: 240px;
 }
-.script-chip:hover {
-  border-color: var(--gold);
-  background: var(--bg-hover);
-}
-.script-chip .chip-title {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.script-chip .chip-del {
-  color: var(--text-dim);
-  font-size: 14px;
-  line-height: 1;
-  padding: 0 2px;
-  flex-shrink: 0;
-}
-.script-chip .chip-del:hover {
-  color: var(--red);
-}
-.script-empty-hint {
-  font-size: 12px;
-  color: var(--text-dim);
-  padding: 6px 0;
-}
-/* ── Preset Grid ── */
-.preset-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 8px;
-}
+.script-chip:hover { border-color: var(--gold); background: var(--bg-hover); }
+.chip-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chip-del { color: var(--text-dim); font-size: 14px; line-height: 1; padding: 0 2px; flex-shrink: 0; }
+.chip-del:hover { color: var(--red); }
+.script-empty-hint { font-size: 12px; color: var(--text-dim); padding: 6px 0; }
+
+/* Preset grid */
+.preset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
 .preset-card {
-  padding: 10px 12px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: var(--bg-card);
-  cursor: pointer;
-  transition: all 0.15s;
+  padding: 10px 12px; border-radius: var(--radius); border: 1px solid var(--border);
+  background: var(--bg-card); cursor: pointer; transition: all 0.15s;
 }
-.preset-card:hover {
-  border-color: var(--gold);
-  background: var(--bg-hover);
-}
-.preset-card .name {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text);
-}
+.preset-card:hover { border-color: var(--gold); background: var(--bg-hover); }
+.preset-card .name { font-size: 14px; font-weight: 500; color: var(--text); }
 .preset-card .desc {
-  font-size: 10px;
-  color: var(--text-dim);
-  margin-top: 2px;
-  line-height: 1.4;
-  max-height: 28px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  font-size: 10px; color: var(--text-dim); margin-top: 2px; line-height: 1.4;
+  max-height: 28px; overflow: hidden; text-overflow: ellipsis;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
 }
 </style>
 </head>
 <body>
 
+<div id="app" v-cloak>
+
 <!-- Header -->
 <header>
   <h1><span class="icon">🎙️</span> 声音编辑器</h1>
-  <div class="status-bar" id="statusBar">
-    <div class="status-pill" id="baseStatus">
-      <span class="status-dot"></span>
+  <div class="status-bar">
+    <div class="status-pill">
+      <span :class="['status-dot', baseStatus.dot]"></span>
       <span>Base</span>
-      <span class="status-text">检查中...</span>
+      <span :class="['status-text', baseStatus.cls]">{{ baseStatus.text }}</span>
     </div>
-    <div class="status-pill" id="designStatus">
-      <span class="status-dot"></span>
+    <div class="status-pill">
+      <span :class="['status-dot', designStatus.dot]"></span>
       <span>Design</span>
-      <span class="status-text">检查中...</span>
+      <span :class="['status-text', designStatus.cls]">{{ designStatus.text }}</span>
     </div>
   </div>
 </header>
@@ -915,119 +417,184 @@ textarea {
   <div class="sidebar">
     <div class="sidebar-header">
       <h2>音色库</h2>
-      <button class="add-btn" onclick="showAddPersonaModal()">+ 添加</button>
+      <button class="add-btn" @click="showAddPersona = true">+ 添加</button>
     </div>
-    <div class="persona-list" id="personaList">
-      <div class="persona-empty">暂无音色<br>点击「添加」注册</div>
+    <div class="persona-list">
+      <div v-if="personaKeys.length === 0" class="persona-empty">
+        暂无音色<br>点击「+ 添加」上传参考音频<br>或用「音色设计」生成
+      </div>
+      <div v-for="(p, key) in personas" :key="key"
+           :class="['persona-item', { active: selectedPersona === key }]"
+           @click="selectPersona(key)">
+        <div class="name">{{ p.name || key }}</div>
+        <div class="key">{{ key }}</div>
+        <div class="badges">
+          <span :class="['badge', p.has_temp ? 'ok' : 'no']">{{ p.has_temp ? '✓ 样音' : '✗ 样音' }}</span>
+          <span :class="['badge', p.has_ref ? 'ok' : 'no']">{{ p.has_ref ? '✓ 参考' : '✗ 参考' }}</span>
+          <span class="badge gold">{{ p.source === 'registered' ? '已注册' : '预设' }}</span>
+        </div>
+      </div>
     </div>
   </div>
 
   <!-- Content -->
   <div class="content">
     <div class="tabs">
-      <div class="tab active" data-tab="clone" onclick="switchTab('clone')">克隆合成</div>
-      <div class="tab" data-tab="design" onclick="switchTab('design')">音色设计</div>
-      <div class="tab" data-tab="library" onclick="switchTab('library')">音频库</div>
+      <div v-for="t in tabs" :key="t.id"
+           :class="['tab', { active: currentTab === t.id }]"
+           @click="switchTab(t.id)">{{ t.label }}</div>
     </div>
 
-    <div class="tab-content" id="tabContent">
+    <div class="tab-content">
       <!-- Clone Tab -->
-      <div id="cloneTab">
-        <!-- Model warning will be injected here -->
-        <div id="cloneModelWarn"></div>
+      <div v-show="currentTab === 'clone'">
+        <div v-if="modelStatus.base.downloading" class="warn-banner download">
+          ⏳ <strong>Base 模型正在下载中</strong> — {{ modelStatus.base.progress.downloaded_mb }}MB / {{ modelStatus.base.progress.total_mb }}MB ({{ modelStatus.base.progress.percent }}%)
+          <div class="progress-bar">
+            <div class="progress-fill" :style="{ width: modelStatus.base.progress.percent + '%' }"></div>
+          </div>
+        </div>
+        <div v-else-if="!modelStatus.base.ready" class="warn-banner">
+          ❌ <strong>Base 模型未下载</strong>，克隆合成功能不可用。
+        </div>
 
-        <div class="hint-box" id="cloneHint">
+        <div class="hint-box">
           💡 从左侧选择一个音色，输入文本即可生成语音。首次生成需要加载模型（约10秒）。
         </div>
-        <div class="selected-persona" id="selectedPersona" style="display:none;">
+
+        <div v-if="selectedPersona" class="selected-persona">
           <span class="label">当前音色:</span>
-          <span class="name" id="selectedPersonaName">-</span>
+          <span class="name">{{ selectedPersonaDisplay }}</span>
         </div>
+
         <div class="form-group">
           <label>音色 Key</label>
-          <input type="text" id="clonePersona" placeholder="如 shui_yan（从左侧选择或手动输入）">
+          <input type="text" v-model="cloneForm.persona" placeholder="从左侧选择或手动输入">
         </div>
-        <!-- 文案库 -->
+
+        <!-- Script library -->
         <div class="script-bar">
           <h3>📋 文案库</h3>
-          <button class="script-save-btn" onclick="saveCurrentScript()">💾 存当前文案</button>
+          <button class="script-save-btn" @click="saveScript">💾 存当前文案</button>
         </div>
-        <div class="script-list" id="scriptList">
-          <div class="script-empty-hint">暂无保存的文案，写好后点「存当前文案」即可保存</div>
+        <div class="script-list">
+          <div v-if="savedScripts.length === 0" class="script-empty-hint">
+            暂无保存的文案，写好后点「存当前文案」即可保存
+          </div>
+          <div v-for="s in savedScripts" :key="s.id"
+               class="script-chip"
+               @click="loadScript(s.id)"
+               :title="s.content.slice(0, 60) + '...'">
+            <span class="chip-title">{{ s.title }}</span>
+            <span class="chip-del" @click.stop="deleteScript(s.id)">&times;</span>
+          </div>
         </div>
+
         <div class="form-group">
           <label>合成文本 <span class="required">*</span></label>
-          <textarea id="cloneText" placeholder="输入要合成的文本..." oninput="updateCharCount('cloneText','cloneCount',400)"></textarea>
-          <div class="char-count" id="cloneCount">0 / 400</div>
+          <textarea v-model="cloneForm.text" placeholder="输入要合成的文本..."></textarea>
+          <div :class="['char-count', { warn: cloneForm.text.length > 320, over: cloneForm.text.length > 400 }]">
+            {{ cloneForm.text.length }} / 400
+          </div>
         </div>
         <div class="form-group">
           <label>语气描述（可选）</label>
-          <input type="text" id="cloneTone" placeholder="如：温柔、沉稳">
+          <input type="text" v-model="cloneForm.tone" placeholder="如：温柔、沉稳">
         </div>
         <div class="form-group">
           <label>情绪标签（可选）</label>
-          <input type="text" id="cloneEmotion" placeholder="如：Happy、Sad、慵懒">
+          <input type="text" v-model="cloneForm.emotion" placeholder="如：Happy、Sad、慵懒">
         </div>
         <div class="form-group">
           <div class="checkbox-row">
-            <input type="checkbox" id="cloneEmotionPriority">
+            <input type="checkbox" id="cloneEmotionPriority" v-model="cloneForm.emotionPriority">
             <label for="cloneEmotionPriority">情绪优先（忽略基础音色描述，仅用上方填写的语气/情绪）</label>
           </div>
         </div>
-        <button class="btn btn-primary" onclick="doClone()" id="cloneBtn">🎙️ 开始合成</button>
+        <button class="btn btn-primary" @click="doClone" :disabled="!baseReady">🎙️ 开始合成</button>
       </div>
 
       <!-- Design Tab -->
-      <div id="designTab" style="display:none;">
-        <!-- Model warning will be injected here -->
-        <div id="designModelWarn"></div>
+      <div v-show="currentTab === 'design'">
+        <div v-if="modelStatus.design.downloading" class="warn-banner download">
+          ⏳ <strong>VoiceDesign 模型正在下载中</strong> — {{ modelStatus.design.progress.downloaded_mb }}MB / {{ modelStatus.design.progress.total_mb }}MB ({{ modelStatus.design.progress.percent }}%)
+          <div class="progress-bar">
+            <div class="progress-fill" :style="{ width: modelStatus.design.progress.percent + '%' }"></div>
+          </div>
+        </div>
+        <div v-else-if="!modelStatus.design.ready" class="warn-banner">
+          ❌ <strong>VoiceDesign 模型未下载</strong>，音色设计功能不可用。
+        </div>
 
-        <div id="designContent" style="display:none;">
+        <div v-show="designReady">
           <div class="hint-box">
             💡 用文字描述设计一个全新的音色，不依赖参考音频。点击下方预设配方可一键套用。
           </div>
-          <div id="designPresetsBox" style="margin-bottom:24px;">
-            <h3 style="font-size:13px;color:var(--text-dim);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px;">预设配方（点击套用）</h3>
-            <div id="designPresetList" class="preset-grid"></div>
+
+          <div v-if="designPresets.length > 0" style="margin-bottom: 24px;">
+            <h3 style="font-size:13px;color:var(--text-dim);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px;">
+              预设配方（点击套用）
+            </h3>
+            <div class="preset-grid">
+              <div v-for="(p, i) in designPresets" :key="i"
+                   class="preset-card" @click="applyPreset(i)">
+                <div class="name">{{ p.voice_name }}</div>
+                <div class="desc">{{ p.tone || p.emotion || '' }}</div>
+              </div>
+            </div>
           </div>
+
           <div class="form-group">
             <label>音色名称 <span class="required">*</span></label>
-            <input type="text" id="designName" placeholder="如：小镜、旁白君">
+            <input type="text" v-model="designForm.name" placeholder="如：小镜、旁白君">
           </div>
           <div class="form-group">
             <label>建模短句（可选，留空用默认）</label>
-            <textarea id="designText" placeholder="这是一段用于音色建模的短句，请保持自然呼吸。" oninput="updateCharCount('designText','designCount',45)" style="min-height:60px;"></textarea>
-            <div class="char-count" id="designCount">0 / 45</div>
+            <textarea v-model="designForm.text" placeholder="这是一段用于音色建模的短句，请保持自然呼吸。" style="min-height:60px;"></textarea>
+            <div :class="['char-count', { warn: designForm.text.length > 36, over: designForm.text.length > 45 }]">
+              {{ designForm.text.length }} / 45
+            </div>
           </div>
           <div class="form-group">
             <label>音色描述 <span class="required">*</span></label>
-            <input type="text" id="designTone" placeholder="如：年轻女性，温柔贴耳，说话带笑意">
+            <input type="text" v-model="designForm.tone" placeholder="如：年轻女性，温柔贴耳，说话带笑意">
           </div>
           <div class="form-group">
             <label>情绪描述（可选）</label>
-            <input type="text" id="designEmotion" placeholder="如：温柔、安抚">
+            <input type="text" v-model="designForm.emotion" placeholder="如：温柔、安抚">
           </div>
           <div class="form-group">
             <div class="checkbox-row">
-              <input type="checkbox" id="designCommit">
+              <input type="checkbox" id="designCommit" v-model="designForm.commit">
               <label for="designCommit">满意后存入标准样音库（注册为可复用音色）</label>
             </div>
           </div>
-          <button class="btn btn-primary" onclick="doDesign()" id="designBtn">🎨 设计音色</button>
+          <button class="btn btn-primary" @click="doDesign" :disabled="!designReady">🎨 设计音色</button>
         </div>
       </div>
 
       <!-- Library Tab -->
-      <div id="libraryTab" style="display:none;">
+      <div v-show="currentTab === 'library'">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
           <h3 style="font-size:15px;color:var(--text);">已生成音频</h3>
-          <button class="btn btn-secondary" onclick="loadAudioList()">🔄 刷新</button>
+          <button class="btn btn-secondary" @click="loadAudioList">🔄 刷新</button>
         </div>
-        <div class="audio-grid" id="audioGrid">
-          <div class="empty-state">
+        <div class="audio-grid">
+          <div v-if="audioFiles.length === 0" class="empty-state">
             <div class="icon">🎵</div>
             <div class="title">暂无音频</div>
             <div class="desc">生成的音频会出现在这里</div>
+          </div>
+          <div v-for="f in audioFiles" :key="f.filename" class="audio-card">
+            <button class="play-btn" @click="playAudio(f.url, f.filename)">▶</button>
+            <div class="info">
+              <div class="filename">{{ f.filename }}</div>
+              <div class="meta">{{ f.created }} · {{ f.size_mb }} MB</div>
+            </div>
+            <div class="actions">
+              <a class="action-btn dl" :href="f.url" download>⬇ 下载</a>
+              <button class="action-btn del" @click="deleteAudio(f.filename)">🗑 删除</button>
+            </div>
           </div>
         </div>
       </div>
@@ -1036,719 +603,556 @@ textarea {
 </div>
 
 <!-- Player Bar -->
-<div class="player-bar" id="playerBar" style="display:none;">
-  <div class="now-playing" id="nowPlaying">-</div>
-  <audio id="audioPlayer" controls></audio>
-  <a class="download-btn" id="downloadBtn" href="#" download>⬇ 下载</a>
+<div class="player-bar" v-show="player.visible">
+  <div class="now-playing">{{ player.filename }}</div>
+  <audio ref="audioPlayer" controls></audio>
+  <a class="download-btn" :href="player.url" :download="player.filename">⬇ 下载</a>
 </div>
 
 <!-- Add Persona Modal -->
-<div class="modal-overlay" id="addPersonaModal">
+<div :class="['modal-overlay', { show: showAddPersona }]">
   <div class="modal">
     <h3>添加音色</h3>
     <div class="form-group">
       <label>音色 Key（英文/拼音）<span class="required">*</span></label>
-      <input type="text" id="addKey" placeholder="如 shui_yan">
+      <input type="text" v-model="addForm.key" placeholder="如 shui_yan">
     </div>
     <div class="form-group">
       <label>显示名称（可选）</label>
-      <input type="text" id="addName" placeholder="如 水烟（默认等于 Key）">
+      <input type="text" v-model="addForm.name" placeholder="如 水烟（默认等于 Key）">
     </div>
     <div class="form-group">
       <label>音色描述（可选）</label>
-      <input type="text" id="addInstruction" placeholder="如：极致软糯，带有慵懒撒娇的气息">
+      <input type="text" v-model="addForm.instruction" placeholder="如：极致软糯，带有慵懒撒娇的气息">
     </div>
     <div class="form-group">
       <label>参考音频 <span class="required">*</span></label>
-      <div class="file-drop" onclick="document.getElementById('addAudio').click()">
+      <div :class="['file-drop', { dragover: dragOver }]"
+           @click="$refs.audioInput.click()"
+           @dragover.prevent="dragOver = true"
+           @dragleave.prevent="dragOver = false"
+           @drop.prevent="handleFileDrop">
         <div>点击或拖拽音频文件到此处</div>
-        <div class="filename" id="addAudioName"></div>
-        <input type="file" id="addAudio" accept=".wav,.mp3,.m4a,.flac,.ogg,.aac">
+        <div v-if="addForm.audioFile" class="filename">{{ addForm.audioFile.name }}</div>
+        <input type="file" ref="audioInput" accept=".wav,.mp3,.m4a,.flac,.ogg,.aac"
+               style="display:none" @change="handleFileSelect">
       </div>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-secondary" onclick="hideAddPersonaModal()">取消</button>
-      <button class="btn btn-primary" onclick="doAddPersona()">注册</button>
+      <button class="btn btn-secondary" @click="closeAddModal">取消</button>
+      <button class="btn btn-primary" @click="doAddPersona">注册</button>
     </div>
   </div>
 </div>
 
-<!-- Loading Overlay (for add persona only) -->
-<div class="loading-overlay" id="loadingOverlay">
+<!-- Loading -->
+<div :class="['loading-overlay', { show: loading }]">
   <div class="spinner"></div>
-  <div class="loading-text" id="loadingText">处理中...</div>
+  <div class="loading-text">{{ loadingText }}</div>
 </div>
 
 <!-- Task Panel -->
-<div class="task-panel" id="taskPanel">
-  <div class="task-panel-header" onclick="toggleTaskPanel()">
+<div :class="['task-panel', { collapsed: taskPanelCollapsed }]">
+  <div class="task-panel-header" @click="taskPanelCollapsed = !taskPanelCollapsed">
     <h3>
       ⚡ 任务队列
-      <span class="badge-count" id="taskBadge">0</span>
+      <span :class="['badge-count', { active: activeTaskCount > 0 }]">
+        {{ activeTaskCount > 0 ? activeTaskCount : tasks.length }}
+      </span>
     </h3>
     <span class="toggle">▲</span>
   </div>
-  <div class="task-panel-body" id="taskList"></div>
+  <div class="task-panel-body">
+    <div v-if="tasks.length === 0" class="task-empty">暂无任务</div>
+    <div v-for="t in tasks" :key="t.id" :class="['task-card', t.status]">
+      <div class="task-header">
+        <span :class="['task-type', t.type]">{{ t.type === 'clone' ? '克隆' : '设计' }}</span>
+        <span class="task-label">{{ t.label }}</span>
+        <button v-if="t.status === 'queued'" class="task-cancel" @click="cancelTask(t.id)">&times;</button>
+      </div>
+      <div :class="['task-stage', t.status]">
+        {{ taskStatusLabel(t) }}
+        <span v-if="t.completed_at"> · {{ t.completed_at }}</span>
+      </div>
+      <div class="task-progress-bar">
+        <div class="task-progress-fill" :style="{ width: t.progress + '%' }"></div>
+      </div>
+      <div v-if="t.status === 'done' && t.result && t.result.url" class="task-actions">
+        <button class="task-action-btn" @click="playAudio(t.result.url, t.result.filename)">▶ 试听</button>
+        <a class="task-action-btn" :href="t.result.url" download>⬇ 下载</a>
+      </div>
+      <div v-if="t.status === 'error'" class="task-stage error" style="margin-top:4px;">
+        {{ t.error || '未知错误' }}
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Toast -->
-<div class="toast" id="toast"></div>
+<div :class="['toast', toast.type, { show: toast.visible }]">{{ toast.msg }}</div>
+
+</div>
 
 <script>
-// ── State ──
-let selectedPersona = null;
-let currentTab = 'clone';
-let personas = {};
-let designPresets = [];
-let savedScripts = [];
-let modelStatus = {
-  base: { ready: false, downloading: false, loaded: false, progress: null },
-  design: { ready: false, downloading: false, loaded: false, progress: null },
-};
-let activeTasks = {};
-let taskPollTimer = null;
-let lastTaskCount = 0;
+const { createApp } = Vue;
 
-// ── Init ──
-document.addEventListener('DOMContentLoaded', () => {
-  checkStatus();
-  loadPersonas();
-  loadAudioList();
-  loadScripts();
-  pollTasks();
+createApp({
+  data() {
+    return {
+      // Navigation
+      currentTab: 'clone',
+      tabs: [
+        { id: 'clone', label: '克隆合成' },
+        { id: 'design', label: '音色设计' },
+        { id: 'library', label: '音频库' },
+      ],
 
-  // Auto-refresh status every 10s (for download progress)
-  setInterval(checkStatus, 10000);
+      // Persona state
+      personas: {},
+      selectedPersona: null,
+      designPresets: [],
 
-  // File drop handlers
-  const dropZone = document.querySelector('.file-drop');
-  if (dropZone) {
-    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
-    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-    dropZone.addEventListener('drop', e => {
-      e.preventDefault();
-      dropZone.classList.remove('dragover');
+      // Clone form
+      cloneForm: {
+        persona: '',
+        text: '',
+        tone: '',
+        emotion: '',
+        emotionPriority: false,
+      },
+
+      // Design form
+      designForm: {
+        name: '',
+        text: '',
+        tone: '',
+        emotion: '',
+        commit: false,
+      },
+
+      // Add persona modal
+      showAddPersona: false,
+      dragOver: false,
+      addForm: {
+        key: '',
+        name: '',
+        instruction: '',
+        audioFile: null,
+      },
+
+      // Scripts
+      savedScripts: [],
+
+      // Audio library
+      audioFiles: [],
+
+      // Model status
+      modelStatus: {
+        base: { ready: false, downloading: false, loaded: false, progress: null },
+        design: { ready: false, downloading: false, loaded: false, progress: null },
+      },
+
+      // Tasks
+      tasks: [],
+      prevTaskStatus: {},
+      taskPanelCollapsed: false,
+      _taskTimer: null,
+
+      // Player
+      player: { url: '', filename: '', visible: false },
+
+      // Toast
+      toast: { msg: '', type: 'info', visible: false },
+      _toastTimer: null,
+
+      // Loading
+      loading: false,
+      loadingText: '',
+    };
+  },
+
+  computed: {
+    personaKeys() {
+      return Object.keys(this.personas);
+    },
+    baseReady() {
+      return this.modelStatus.base.ready && !this.modelStatus.base.downloading;
+    },
+    designReady() {
+      return this.modelStatus.design.ready && !this.modelStatus.design.downloading;
+    },
+    activeTaskCount() {
+      return this.tasks.filter(t => t.status === 'queued' || t.status === 'running').length;
+    },
+    selectedPersonaDisplay() {
+      if (!this.selectedPersona) return '';
+      const p = this.personas[this.selectedPersona];
+      const name = p?.name || this.selectedPersona;
+      return `${name} (${this.selectedPersona})`;
+    },
+    baseStatus() {
+      return this._statusInfo(this.modelStatus.base);
+    },
+    designStatus() {
+      return this._statusInfo(this.modelStatus.design);
+    },
+  },
+
+  methods: {
+    // ── Helpers ──
+    _statusInfo(st) {
+      if (st.loaded) return { dot: 'ok', cls: 'ready', text: '已加载' };
+      if (st.ready) return { dot: 'ok', cls: 'ready', text: '已就绪' };
+      if (st.downloading) {
+        const pct = st.progress?.percent || 0;
+        return { dot: 'loading', cls: 'downloading', text: `下载中 ${pct}%` };
+      }
+      return { dot: 'err', cls: 'missing', text: '未下载' };
+    },
+
+    taskStatusLabel(t) {
+      const map = {
+        queued: '排队中',
+        running: t.stage || '处理中',
+        done: '✅ 完成',
+        error: '❌ 失败',
+        cancelled: '已取消',
+      };
+      return map[t.status] || t.status;
+    },
+
+    showToast(msg, type = 'info') {
+      this.toast.msg = msg;
+      this.toast.type = type;
+      this.toast.visible = true;
+      clearTimeout(this._toastTimer);
+      this._toastTimer = setTimeout(() => { this.toast.visible = false; }, 4000);
+    },
+
+    showLoading(text) {
+      this.loadingText = text;
+      this.loading = true;
+    },
+    hideLoading() {
+      this.loading = false;
+    },
+
+    // ── Tabs ──
+    switchTab(tab) {
+      this.currentTab = tab;
+      if (tab === 'library') this.loadAudioList();
+    },
+
+    // ── Status ──
+    async checkStatus() {
+      try {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+        this.modelStatus.base = {
+          ready: data.base_model,
+          downloading: data.base_downloading,
+          loaded: data.base_loaded,
+          progress: data.base_progress,
+        };
+        this.modelStatus.design = {
+          ready: data.design_model,
+          downloading: data.design_downloading,
+          loaded: data.design_loaded,
+          progress: data.design_progress,
+        };
+      } catch (e) {
+        console.error('Status check failed:', e);
+      }
+    },
+
+    // ── Personas ──
+    async loadPersonas() {
+      try {
+        const res = await fetch('/api/personas');
+        const data = await res.json();
+        this.personas = data.personas || {};
+        this.designPresets = data.presets || [];
+      } catch (e) {
+        this.showToast('加载音色列表失败: ' + e.message, 'error');
+      }
+    },
+
+    selectPersona(key) {
+      this.selectedPersona = key;
+      this.cloneForm.persona = key;
+      const p = this.personas[key];
+      if (p && p.instruction) {
+        this.cloneForm.tone = p.instruction;
+      }
+    },
+
+    applyPreset(idx) {
+      const p = this.designPresets[idx];
+      if (!p) return;
+      this.designForm.name = p.voice_name;
+      this.designForm.tone = p.tone || '';
+      this.designForm.emotion = p.emotion || '';
+      if (p.text) this.designForm.text = p.text;
+      this.showToast(`已套用配方：${p.voice_name}`, 'info');
+    },
+
+    // ── File upload ──
+    handleFileSelect(e) {
+      const file = e.target.files[0];
+      if (file) this.addForm.audioFile = file;
+    },
+    handleFileDrop(e) {
+      this.dragOver = false;
       const file = e.dataTransfer.files[0];
       if (file) {
-        document.getElementById('addAudio').files = e.dataTransfer.files;
-        document.getElementById('addAudioName').textContent = file.name;
+        this.addForm.audioFile = file;
       }
-    });
-  }
+    },
+    closeAddModal() {
+      this.showAddPersona = false;
+      this.addForm.key = '';
+      this.addForm.name = '';
+      this.addForm.instruction = '';
+      this.addForm.audioFile = null;
+    },
 
-  document.getElementById('addAudio').addEventListener('change', e => {
-    document.getElementById('addAudioName').textContent = e.target.files[0]?.name || '';
-  });
-});
+    async doAddPersona() {
+      if (!this.addForm.key) { this.showToast('请输入音色 Key', 'error'); return; }
+      if (!this.addForm.audioFile) { this.showToast('请选择参考音频', 'error'); return; }
 
-// ── Status ──
-async function checkStatus() {
-  try {
-    const res = await fetch('/api/status');
-    const data = await res.json();
+      this.showLoading('正在注册音色...');
+      const formData = new FormData();
+      formData.append('key', this.addForm.key);
+      formData.append('name', this.addForm.name || this.addForm.key);
+      formData.append('instruction', this.addForm.instruction);
+      formData.append('audio', this.addForm.audioFile);
 
-    modelStatus.base = {
-      ready: data.base_model,
-      downloading: data.base_downloading,
-      loaded: data.base_loaded,
-      progress: data.base_progress,
-    };
-    modelStatus.design = {
-      ready: data.design_model,
-      downloading: data.design_downloading,
-      loaded: data.design_loaded,
-      progress: data.design_progress,
-    };
-
-    updateStatusPill('baseStatus', modelStatus.base, 'Base');
-    updateStatusPill('designStatus', modelStatus.design, 'Design');
-
-    // Update tab warnings
-    updateCloneTabState();
-    updateDesignTabState();
-  } catch (e) {
-    console.error('Status check failed:', e);
-  }
-}
-
-function updateStatusPill(id, st, label) {
-  const pill = document.getElementById(id);
-  const dot = pill.querySelector('.status-dot');
-  const text = pill.querySelector('.status-text');
-
-  if (st.loaded) {
-    dot.className = 'status-dot ok';
-    text.className = 'status-text ready';
-    text.textContent = '已加载';
-    pill.title = '模型已加载到内存，可直接使用';
-  } else if (st.ready) {
-    dot.className = 'status-dot ok';
-    text.className = 'status-text ready';
-    text.textContent = '已就绪';
-    pill.title = '模型已下载，首次使用时自动加载';
-  } else if (st.downloading) {
-    dot.className = 'status-dot loading';
-    text.className = 'status-text downloading';
-    const pct = st.progress?.percent || 0;
-    const mb = st.progress?.downloaded_mb || 0;
-    const total = st.progress?.total_mb || 0;
-    text.textContent = `下载中 ${pct}%`;
-    pill.title = `下载中: ${mb}MB / ${total}MB (${pct}%)`;
-  } else {
-    dot.className = 'status-dot err';
-    text.className = 'status-text missing';
-    text.textContent = '未下载';
-    pill.title = '模型未下载，功能不可用';
-  }
-}
-
-// ── Clone Tab State ──
-function updateCloneTabState() {
-  const warnBox = document.getElementById('cloneModelWarn');
-  const btn = document.getElementById('cloneBtn');
-  const st = modelStatus.base;
-
-  if (st.downloading) {
-    const pct = st.progress?.percent || 0;
-    const mb = st.progress?.downloaded_mb || 0;
-    const total = st.progress?.total_mb || 0;
-    warnBox.innerHTML = `
-      <div class="warn-banner download">
-        ⏳ <strong>Base 模型正在下载中</strong> — ${mb}MB / ${total}MB (${pct}%)
-        <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
-        请等待下载完成后刷新页面，或手动执行：<br>
-        <code>.venv/bin/python -m modelscope.cli.cli download --model Qwen/Qwen3-TTS-12Hz-1.7B-Base --local_dir ./models/Base-1.7B</code>
-      </div>`;
-    btn.disabled = true;
-  } else if (!st.ready) {
-    warnBox.innerHTML = `
-      <div class="warn-banner">
-        ❌ <strong>Base 模型未下载</strong>，克隆合成功能不可用。请先下载模型：<br>
-        <code>.venv/bin/python -m modelscope.cli.cli download --model Qwen/Qwen3-TTS-12Hz-1.7B-Base --local_dir ./models/Base-1.7B</code>
-      </div>`;
-    btn.disabled = true;
-  } else {
-    warnBox.innerHTML = '';
-    btn.disabled = false;
-  }
-}
-
-// ── Design Tab State ──
-function updateDesignTabState() {
-  const warnBox = document.getElementById('designModelWarn');
-  const content = document.getElementById('designContent');
-  const st = modelStatus.design;
-
-  if (st.downloading) {
-    const pct = st.progress?.percent || 0;
-    const mb = st.progress?.downloaded_mb || 0;
-    const total = st.progress?.total_mb || 0;
-    warnBox.innerHTML = `
-      <div class="warn-banner download">
-        ⏳ <strong>VoiceDesign 模型正在下载中</strong> — ${mb}MB / ${total}MB (${pct}%)
-        <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
-        下载完成后即可使用音色设计功能。页面会每 10 秒自动刷新状态。
-      </div>`;
-    content.style.display = 'none';
-  } else if (!st.ready) {
-    warnBox.innerHTML = `
-      <div class="warn-banner">
-        ❌ <strong>VoiceDesign 模型未下载</strong>，音色设计功能不可用。请先下载模型：<br>
-        <code>.venv/bin/python -m modelscope.cli.cli download --model Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign --local_dir ./models/VoiceDesign-1.7B</code>
-      </div>`;
-    content.style.display = 'none';
-  } else {
-    warnBox.innerHTML = '';
-    content.style.display = '';
-  }
-}
-
-// ── Personas ──
-async function loadPersonas() {
-  try {
-    const res = await fetch('/api/personas');
-    const data = await res.json();
-    personas = data.personas || {};
-    designPresets = data.presets || [];
-    renderPersonas();
-    renderDesignPresets();
-  } catch (e) {
-    showToast('加载音色列表失败: ' + e.message, 'error');
-  }
-}
-
-function renderPersonas() {
-  const list = document.getElementById('personaList');
-  const keys = Object.keys(personas);
-
-  if (keys.length === 0) {
-    list.innerHTML = '<div class="persona-empty">暂无音色<br>点击「+ 添加」上传参考音频<br>或用「音色设计」生成</div>';
-    return;
-  }
-
-  list.innerHTML = keys.map(key => {
-    const p = personas[key];
-    const name = p.name || key;
-    const hasTemp = p.has_temp;
-    const hasRef = p.has_ref;
-    const source = p.source === 'registered' ? '已注册' : '预设';
-    return `
-      <div class="persona-item ${selectedPersona === key ? 'active' : ''}" onclick="selectPersona('${key}')">
-        <div class="name">${name}</div>
-        <div class="key">${key}</div>
-        <div class="badges">
-          <span class="badge ${hasTemp ? 'ok' : 'no'}">${hasTemp ? '✓ 样音' : '✗ 样音'}</span>
-          <span class="badge ${hasRef ? 'ok' : 'no'}">${hasRef ? '✓ 参考' : '✗ 参考'}</span>
-          <span class="badge gold">${source}</span>
-        </div>
-      </div>
-    `;
-  }).join('');
-}
-
-function selectPersona(key) {
-  selectedPersona = key;
-  const p = personas[key];
-  const name = p?.name || key;
-  document.getElementById('clonePersona').value = key;
-  document.getElementById('selectedPersona').style.display = 'flex';
-  document.getElementById('selectedPersonaName').textContent = `${name} (${key})`;
-  if (p?.instruction) {
-    document.getElementById('cloneTone').value = p.instruction;
-  }
-  renderPersonas();
-}
-
-function renderDesignPresets() {
-  const box = document.getElementById('designPresetList');
-  if (!box) return;
-  if (designPresets.length === 0) {
-    document.getElementById('designPresetsBox').style.display = 'none';
-    return;
-  }
-  document.getElementById('designPresetsBox').style.display = '';
-  box.innerHTML = designPresets.map((p, i) => `
-    <div class="preset-card" onclick="applyPreset(${i})">
-      <div class="name">${p.voice_name}</div>
-      <div class="desc">${p.tone || p.emotion || ''}</div>
-    </div>
-  `).join('');
-}
-
-function applyPreset(idx) {
-  const p = designPresets[idx];
-  if (!p) return;
-  document.getElementById('designName').value = p.voice_name;
-  document.getElementById('designTone').value = p.tone || '';
-  document.getElementById('designEmotion').value = p.emotion || '';
-  if (p.text) {
-    document.getElementById('designText').value = p.text;
-    updateCharCount('designText', 'designCount', 45);
-  }
-  showToast(`已套用配方：${p.voice_name}`, 'info');
-}
-
-// ── Tabs ──
-function switchTab(tab) {
-  currentTab = tab;
-  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
-  document.getElementById('cloneTab').style.display = tab === 'clone' ? '' : 'none';
-  document.getElementById('designTab').style.display = tab === 'design' ? '' : 'none';
-  document.getElementById('libraryTab').style.display = tab === 'library' ? '' : 'none';
-  if (tab === 'library') loadAudioList();
-}
-
-// ── Script Library ──
-async function loadScripts() {
-  try {
-    const res = await fetch('/api/scripts');
-    const data = await res.json();
-    savedScripts = data.scripts || [];
-    renderScripts();
-  } catch (e) {
-    console.error('Load scripts failed:', e);
-  }
-}
-
-function renderScripts() {
-  const box = document.getElementById('scriptList');
-  if (savedScripts.length === 0) {
-    box.innerHTML = '<div class="script-empty-hint">暂无保存的文案，写好后点「存当前文案」即可保存</div>';
-    return;
-  }
-  box.innerHTML = savedScripts.map(s => `
-    <div class="script-chip" onclick="loadScript('${s.id}')" title="${s.content.replace(/"/g, '&quot;').slice(0, 60)}...">
-      <span class="chip-title">${s.title}</span>
-      <span class="chip-del" onclick="event.stopPropagation(); deleteScript('${s.id}')">&times;</span>
-    </div>
-  `).join('');
-}
-
-function loadScript(id) {
-  const s = savedScripts.find(x => x.id === id);
-  if (!s) return;
-  document.getElementById('cloneText').value = s.content;
-  updateCharCount('cloneText', 'cloneCount', 400);
-  showToast(`已载入：${s.title}`, 'info');
-}
-
-async function saveCurrentScript() {
-  const text = document.getElementById('cloneText').value.trim();
-  if (!text) {
-    showToast('文本框为空，无内容可保存', 'error');
-    return;
-  }
-  const title = text.slice(0, 15).replace(/\n/g, ' ').trim() + (text.length > 15 ? '...' : '');
-  try {
-    const res = await fetch('/api/scripts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, content: text }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || '保存失败');
-    savedScripts = data.scripts || [];
-    renderScripts();
-    showToast('文案已保存', 'success');
-  } catch (e) {
-    showToast('保存失败: ' + e.message, 'error');
-  }
-}
-
-async function deleteScript(id) {
-  try {
-    const res = await fetch(`/api/scripts/${id}`, { method: 'DELETE' });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || '删除失败');
-    savedScripts = data.scripts || [];
-    renderScripts();
-    showToast('已删除', 'success');
-  } catch (e) {
-    showToast('删除失败: ' + e.message, 'error');
-  }
-}
-
-// ── Clone ──
-async function doClone() {
-  const persona = document.getElementById('clonePersona').value.trim();
-  const text = document.getElementById('cloneText').value.trim();
-  const tone = document.getElementById('cloneTone').value.trim();
-  const emotion = document.getElementById('cloneEmotion').value.trim();
-  const emotionPriority = document.getElementById('cloneEmotionPriority').checked;
-
-  if (!persona) { showToast('请选择或输入音色 Key', 'error'); return; }
-  if (!text) { showToast('请输入合成文本', 'error'); return; }
-  if (text.length > 400) { showToast(`文本过长（${text.length} > 400）`, 'error'); return; }
-
-  const btn = document.getElementById('cloneBtn');
-  btn.disabled = true;
-  btn.textContent = '⏳ 提交中...';
-
-  try {
-    const res = await fetch('/api/clone', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ persona, text, tone, emotion, emotion_priority: emotionPriority }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || '提交失败');
-
-    showToast('任务已加入队列', 'info');
-    expandTaskPanel();
-    pollTasks();
-  } catch (e) {
-    showToast('提交失败: ' + e.message, 'error');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = '🎙️ 开始合成';
-  }
-}
-
-// ── Design ──
-async function doDesign() {
-  const voiceName = document.getElementById('designName').value.trim();
-  const text = document.getElementById('designText').value.trim();
-  const tone = document.getElementById('designTone').value.trim();
-  const emotion = document.getElementById('designEmotion').value.trim();
-  const commit = document.getElementById('designCommit').checked;
-
-  if (!voiceName) { showToast('请输入音色名称', 'error'); return; }
-  if (!tone && !emotion) { showToast('请填写音色描述或情绪描述', 'error'); return; }
-
-  const btn = document.getElementById('designBtn');
-  btn.disabled = true;
-  btn.textContent = '⏳ 提交中...';
-
-  try {
-    const res = await fetch('/api/design', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ voice_name: voiceName, text, tone, emotion, commit }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || '提交失败');
-
-    showToast('任务已加入队列', 'info');
-    expandTaskPanel();
-    pollTasks();
-  } catch (e) {
-    showToast('提交失败: ' + e.message, 'error');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = '🎨 设计音色';
-  }
-}
-
-// ── Task Queue ──
-async function pollTasks() {
-  try {
-    const res = await fetch('/api/tasks');
-    const data = await res.json();
-    const tasks = data.tasks || [];
-
-    let hasActive = false;
-    let newCompleted = [];
-
-    for (const t of tasks) {
-      const prev = activeTasks[t.id];
-      if (t.status === 'done' && (!prev || prev.status !== 'done')) {
-        newCompleted.push(t);
+      try {
+        const res = await fetch('/api/personas/add', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || '注册失败');
+        this.showToast(`音色 ${data.name} 注册成功！`, 'success');
+        this.closeAddModal();
+        this.loadPersonas();
+      } catch (e) {
+        this.showToast('注册失败: ' + e.message, 'error');
+      } finally {
+        this.hideLoading();
       }
-      if (t.status === 'error' && (!prev || prev.status !== 'error')) {
-        showToast(`任务失败: ${t.error}`, 'error');
+    },
+
+    // ── Scripts ──
+    async loadScripts() {
+      try {
+        const res = await fetch('/api/scripts');
+        const data = await res.json();
+        this.savedScripts = data.scripts || [];
+      } catch (e) {
+        console.error('Load scripts failed:', e);
       }
-      if (t.status === 'queued' || t.status === 'running') {
-        hasActive = true;
+    },
+    loadScript(id) {
+      const s = this.savedScripts.find(x => x.id === id);
+      if (!s) return;
+      this.cloneForm.text = s.content;
+      this.showToast(`已载入：${s.title}`, 'info');
+    },
+    async saveScript() {
+      const text = this.cloneForm.text.trim();
+      if (!text) { this.showToast('文本框为空，无内容可保存', 'error'); return; }
+      const title = text.slice(0, 15).replace(/\n/g, ' ').trim() + (text.length > 15 ? '...' : '');
+      try {
+        const res = await fetch('/api/scripts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, content: text }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || '保存失败');
+        this.savedScripts = data.scripts || [];
+        this.showToast('文案已保存', 'success');
+      } catch (e) {
+        this.showToast('保存失败: ' + e.message, 'error');
       }
-    }
-
-    activeTasks = {};
-    for (const t of tasks) {
-      activeTasks[t.id] = t;
-    }
-
-    renderTasks(tasks);
-
-    // 新完成的任务：播放 + 刷新列表
-    for (const t of newCompleted) {
-      if (t.result?.url) {
-        showToast(`✅ ${t.type === 'clone' ? '克隆' : '设计'}完成: ${t.result.filename}`, 'success');
-        playAudio(t.result.url, t.result.filename);
-        loadAudioList();
-        if (t.result.committed) loadPersonas();
+    },
+    async deleteScript(id) {
+      try {
+        const res = await fetch(`/api/scripts/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || '删除失败');
+        this.savedScripts = data.scripts || [];
+        this.showToast('已删除', 'success');
+      } catch (e) {
+        this.showToast('删除失败: ' + e.message, 'error');
       }
-    }
+    },
 
-    // 更新 badge
-    const activeCount = tasks.filter(t => t.status === 'queued' || t.status === 'running').length;
-    const badge = document.getElementById('taskBadge');
-    badge.textContent = activeCount > 0 ? activeCount : tasks.length;
-    badge.className = 'badge-count' + (activeCount > 0 ? ' active' : '');
+    // ── Clone ──
+    async doClone() {
+      const persona = this.cloneForm.persona.trim();
+      const text = this.cloneForm.text.trim();
+      if (!persona) { this.showToast('请选择或输入音色 Key', 'error'); return; }
+      if (!text) { this.showToast('请输入合成文本', 'error'); return; }
+      if (text.length > 400) { this.showToast(`文本过长（${text.length} > 400）`, 'error'); return; }
 
-    // 继续轮询
-    if (taskPollTimer) clearTimeout(taskPollTimer);
-    if (hasActive) {
-      taskPollTimer = setTimeout(pollTasks, 1500);
-    } else {
-      taskPollTimer = setTimeout(pollTasks, 5000);
-    }
-  } catch (e) {
-    console.error('Poll tasks failed:', e);
-    if (taskPollTimer) clearTimeout(taskPollTimer);
-    taskPollTimer = setTimeout(pollTasks, 5000);
-  }
-}
+      try {
+        const res = await fetch('/api/clone', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            persona, text,
+            tone: this.cloneForm.tone,
+            emotion: this.cloneForm.emotion,
+            emotion_priority: this.cloneForm.emotionPriority,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || '提交失败');
+        this.showToast('任务已加入队列', 'info');
+        this.taskPanelCollapsed = false;
+        this.pollTasks();
+      } catch (e) {
+        this.showToast('提交失败: ' + e.message, 'error');
+      }
+    },
 
-function renderTasks(tasks) {
-  const box = document.getElementById('taskList');
-  if (!tasks || tasks.length === 0) {
-    box.innerHTML = '';
-    return;
-  }
+    // ── Design ──
+    async doDesign() {
+      const name = this.designForm.name.trim();
+      const tone = this.designForm.tone.trim();
+      const emotion = this.designForm.emotion.trim();
+      if (!name) { this.showToast('请输入音色名称', 'error'); return; }
+      if (!tone && !emotion) { this.showToast('请填写音色描述或情绪描述', 'error'); return; }
 
-  box.innerHTML = tasks.map(t => {
-    const statusLabel = {
-      queued: '排队中',
-      running: t.stage || '处理中',
-      done: '✅ 完成',
-      error: '❌ 失败',
-      cancelled: '已取消',
-    }[t.status] || t.status;
+      try {
+        const res = await fetch('/api/design', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            voice_name: name,
+            text: this.designForm.text,
+            tone, emotion,
+            commit: this.designForm.commit,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || '提交失败');
+        this.showToast('任务已加入队列', 'info');
+        this.taskPanelCollapsed = false;
+        this.pollTasks();
+      } catch (e) {
+        this.showToast('提交失败: ' + e.message, 'error');
+      }
+    },
 
-    const stageClass = t.status === 'running' ? 'running' : t.status;
-    const showCancel = t.status === 'queued';
-    const showPlay = t.status === 'done' && t.result?.url;
+    // ── Tasks ──
+    async pollTasks() {
+      try {
+        const res = await fetch('/api/tasks');
+        const data = await res.json();
+        const tasks = data.tasks || [];
 
-    return `
-      <div class="task-card ${t.status}">
-        <div class="task-header">
-          <span class="task-type ${t.type}">${t.type === 'clone' ? '克隆' : '设计'}</span>
-          <span class="task-label">${t.label}</span>
-          ${showCancel ? `<button class="task-cancel" onclick="cancelTask('${t.id}')">&times;</button>` : ''}
-        </div>
-        <div class="task-stage ${stageClass}">${statusLabel}${t.completed_at ? ' · ' + t.completed_at : ''}</div>
-        <div class="task-progress-bar">
-          <div class="task-progress-fill" style="width:${t.progress}%"></div>
-        </div>
-        ${showPlay ? `
-          <div class="task-actions">
-            <button class="task-action-btn" onclick="playAudio('${t.result.url}', '${t.result.filename}')">▶ 试听</button>
-            <a class="task-action-btn" href="${t.result.url}" download>⬇ 下载</a>
-          </div>
-        ` : ''}
-        ${t.status === 'error' ? `<div class="task-stage error" style="margin-top:4px;">${t.error || '未知错误'}</div>` : ''}
-      </div>
-    `;
-  }).join('');
-}
+        let hasActive = false;
+        let newCompleted = [];
 
-function toggleTaskPanel() {
-  document.getElementById('taskPanel').classList.toggle('collapsed');
-}
+        for (const t of tasks) {
+          const prev = this.prevTaskStatus[t.id];
+          if (t.status === 'done' && (!prev || prev !== 'done')) {
+            newCompleted.push(t);
+          }
+          if (t.status === 'error' && (!prev || prev !== 'error')) {
+            this.showToast(`任务失败: ${t.error}`, 'error');
+          }
+          if (t.status === 'queued' || t.status === 'running') {
+            hasActive = true;
+          }
+        }
 
-function expandTaskPanel() {
-  document.getElementById('taskPanel').classList.remove('collapsed');
-}
+        this.prevTaskStatus = {};
+        for (const t of tasks) {
+          this.prevTaskStatus[t.id] = t.status;
+        }
+        this.tasks = tasks;
 
-async function cancelTask(taskId) {
-  try {
-    await fetch(`/api/tasks/${taskId}`, { method: 'DELETE' });
-    showToast('已取消', 'info');
-    pollTasks();
-  } catch (e) {
-    showToast('取消失败', 'error');
-  }
-}
+        // New completions
+        for (const t of newCompleted) {
+          if (t.result && t.result.url) {
+            this.showToast(`✅ ${t.type === 'clone' ? '克隆' : '设计'}完成: ${t.result.filename}`, 'success');
+            this.playAudio(t.result.url, t.result.filename);
+            this.loadAudioList();
+            if (t.result.committed) this.loadPersonas();
+          }
+        }
 
-// ── Audio List ──
-async function loadAudioList() {
-  try {
-    const res = await fetch('/api/audio-list');
-    const data = await res.json();
-    const grid = document.getElementById('audioGrid');
-    const files = data.files || [];
+        // Continue polling
+        clearTimeout(this._taskTimer);
+        if (hasActive) {
+          this._taskTimer = setTimeout(() => this.pollTasks(), 1500);
+        } else {
+          this._taskTimer = setTimeout(() => this.pollTasks(), 5000);
+        }
+      } catch (e) {
+        console.error('Poll tasks failed:', e);
+        clearTimeout(this._taskTimer);
+        this._taskTimer = setTimeout(() => this.pollTasks(), 5000);
+      }
+    },
 
-    if (files.length === 0) {
-      grid.innerHTML = `
-        <div class="empty-state">
-          <div class="icon">🎵</div>
-          <div class="title">暂无音频</div>
-          <div class="desc">生成的音频会出现在这里</div>
-        </div>`;
-      return;
-    }
+    async cancelTask(taskId) {
+      try {
+        await fetch(`/api/tasks/${taskId}`, { method: 'DELETE' });
+        this.showToast('已取消', 'info');
+        this.pollTasks();
+      } catch (e) {
+        this.showToast('取消失败', 'error');
+      }
+    },
 
-    grid.innerHTML = files.map(f => `
-      <div class="audio-card">
-        <button class="play-btn" onclick="playAudio('${f.url}', '${f.filename}')">▶</button>
-        <div class="info">
-          <div class="filename">${f.filename}</div>
-          <div class="meta">${f.created} · ${f.size_mb} MB</div>
-        </div>
-        <div class="actions">
-          <a class="action-btn dl" href="${f.url}" download>⬇ 下载</a>
-          <button class="action-btn del" onclick="deleteAudio('${f.filename}')">🗑 删除</button>
-        </div>
-      </div>
-    `).join('');
-  } catch (e) {
-    showToast('加载音频列表失败', 'error');
-  }
-}
+    // ── Audio ──
+    async loadAudioList() {
+      try {
+        const res = await fetch('/api/audio-list');
+        const data = await res.json();
+        this.audioFiles = data.files || [];
+      } catch (e) {
+        this.showToast('加载音频列表失败', 'error');
+      }
+    },
 
-async function deleteAudio(filename) {
-  if (!confirm(`确认删除 ${filename}？`)) return;
-  try {
-    await fetch(`/api/audio/${encodeURIComponent(filename)}`, { method: 'DELETE' });
-    showToast('已删除', 'success');
-    loadAudioList();
-  } catch (e) {
-    showToast('删除失败', 'error');
-  }
-}
+    playAudio(url, filename) {
+      this.player.url = url;
+      this.player.filename = filename;
+      this.player.visible = true;
+      this.$nextTick(() => {
+        const el = this.$refs.audioPlayer;
+        if (el) {
+          el.src = url;
+          el.play();
+        }
+      });
+    },
 
-// ── Player ──
-function playAudio(url, filename) {
-  const player = document.getElementById('audioPlayer');
-  const bar = document.getElementById('playerBar');
-  const nowPlaying = document.getElementById('nowPlaying');
-  const dlBtn = document.getElementById('downloadBtn');
+    async deleteAudio(filename) {
+      if (!confirm(`确认删除 ${filename}？`)) return;
+      try {
+        await fetch(`/api/audio/${encodeURIComponent(filename)}`, { method: 'DELETE' });
+        this.showToast('已删除', 'success');
+        this.loadAudioList();
+      } catch (e) {
+        this.showToast('删除失败', 'error');
+      }
+    },
+  },
 
-  player.src = url;
-  player.play();
-  bar.style.display = 'flex';
-  nowPlaying.textContent = filename;
-  dlBtn.href = url;
-  dlBtn.download = filename;
-}
-
-// ── Add Persona ──
-function showAddPersonaModal() {
-  document.getElementById('addPersonaModal').classList.add('show');
-}
-function hideAddPersonaModal() {
-  document.getElementById('addPersonaModal').classList.remove('show');
-  document.getElementById('addKey').value = '';
-  document.getElementById('addName').value = '';
-  document.getElementById('addInstruction').value = '';
-  document.getElementById('addAudio').value = '';
-  document.getElementById('addAudioName').textContent = '';
-}
-
-async function doAddPersona() {
-  const key = document.getElementById('addKey').value.trim();
-  const name = document.getElementById('addName').value.trim();
-  const instruction = document.getElementById('addInstruction').value.trim();
-  const fileInput = document.getElementById('addAudio');
-
-  if (!key) { showToast('请输入音色 Key', 'error'); return; }
-  if (!fileInput.files[0]) { showToast('请选择参考音频', 'error'); return; }
-
-  showLoading('正在注册音色...');
-  const formData = new FormData();
-  formData.append('key', key);
-  formData.append('name', name || key);
-  formData.append('instruction', instruction);
-  formData.append('audio', fileInput.files[0]);
-
-  try {
-    const res = await fetch('/api/personas/add', { method: 'POST', body: formData });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || '注册失败');
-    showToast(`音色 ${data.name} 注册成功！`, 'success');
-    hideAddPersonaModal();
-    loadPersonas();
-  } catch (e) {
-    showToast('注册失败: ' + e.message, 'error');
-  } finally {
-    hideLoading();
-  }
-}
-
-// ── Helpers ──
-function updateCharCount(textId, countId, max) {
-  const text = document.getElementById(textId).value;
-  const count = document.getElementById(countId);
-  count.textContent = `${text.length} / ${max}`;
-  count.className = 'char-count' + (text.length > max ? ' over' : text.length > max * 0.8 ? ' warn' : '');
-}
-
-function showLoading(text) {
-  document.getElementById('loadingText').textContent = text;
-  document.getElementById('loadingOverlay').classList.add('show');
-}
-function hideLoading() {
-  document.getElementById('loadingOverlay').classList.remove('show');
-}
-
-let toastTimer;
-function showToast(msg, type = 'info') {
-  const toast = document.getElementById('toast');
-  toast.textContent = msg;
-  toast.className = `toast ${type} show`;
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toast.classList.remove('show'), 4000);
-}
+  mounted() {
+    this.checkStatus();
+    this.loadPersonas();
+    this.loadAudioList();
+    this.loadScripts();
+    this.pollTasks();
+    setInterval(() => this.checkStatus(), 10000);
+  },
+}).mount('#app');
 </script>
 </body>
 </html>
