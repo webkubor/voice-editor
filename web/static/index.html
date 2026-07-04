@@ -17,6 +17,7 @@
   --cyan: #56b6c2;
   --green: #98c379;
   --red: #e06c75;
+  --orange: #e5a532;
   --radius: 8px;
 }
 
@@ -60,22 +61,28 @@ header .status-bar {
 .status-pill {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
+  gap: 6px;
+  padding: 4px 12px;
   border-radius: 20px;
   background: var(--bg-hover);
   border: 1px solid var(--border);
+  white-space: nowrap;
 }
 .status-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background: var(--text-dim);
+  flex-shrink: 0;
 }
 .status-dot.ok { background: var(--green); }
 .status-dot.err { background: var(--red); }
-.status-dot.loading { background: var(--gold); animation: pulse 1s infinite; }
+.status-dot.loading { background: var(--orange); animation: pulse 1s infinite; }
 @keyframes pulse { 50% { opacity: 0.3; } }
+.status-text { font-size: 11px; color: var(--text-dim); }
+.status-text.ready { color: var(--green); }
+.status-text.downloading { color: var(--orange); }
+.status-text.missing { color: var(--red); }
 
 /* ── Main Layout ── */
 .main {
@@ -154,6 +161,7 @@ header .status-bar {
   display: flex;
   gap: 4px;
   margin-top: 4px;
+  flex-wrap: wrap;
 }
 .badge {
   font-size: 10px;
@@ -162,11 +170,13 @@ header .status-bar {
 }
 .badge.ok { background: rgba(152, 195, 121, 0.15); color: var(--green); }
 .badge.no { background: rgba(224, 108, 117, 0.15); color: var(--red); }
+.badge.gold { background: rgba(212,160,82,0.15); color: var(--gold); }
 .persona-empty {
   padding: 20px 16px;
   text-align: center;
   color: var(--text-dim);
   font-size: 13px;
+  line-height: 1.8;
 }
 
 /* ── Content Area ── */
@@ -262,8 +272,9 @@ textarea {
   background: var(--gold-bright);
 }
 .btn-primary:disabled {
-  opacity: 0.4;
+  opacity: 0.3;
   cursor: not-allowed;
+  background: var(--text-dim);
 }
 .btn-secondary {
   background: var(--bg-hover);
@@ -295,6 +306,43 @@ textarea {
   margin: 0;
   color: var(--text);
   cursor: pointer;
+}
+
+/* ── Warning Banner ── */
+.warn-banner {
+  background: rgba(224, 108, 117, 0.1);
+  border: 1px solid rgba(224, 108, 117, 0.3);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  font-size: 13px;
+  color: var(--red);
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+.warn-banner.download {
+  background: rgba(229, 165, 50, 0.1);
+  border-color: rgba(229, 165, 50, 0.3);
+  color: var(--orange);
+}
+.warn-banner code {
+  background: rgba(0,0,0,0.3);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--cyan);
+}
+.warn-banner .progress-bar {
+  margin-top: 8px;
+  height: 6px;
+  background: rgba(0,0,0,0.3);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.warn-banner .progress-fill {
+  height: 100%;
+  background: var(--orange);
+  border-radius: 3px;
+  transition: width 0.5s;
 }
 
 /* ── Audio Player Bar ── */
@@ -571,6 +619,42 @@ textarea {
   color: var(--gold);
   font-weight: 500;
 }
+
+/* ── Preset Grid ── */
+.preset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
+}
+.preset-card {
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.preset-card:hover {
+  border-color: var(--gold);
+  background: var(--bg-hover);
+}
+.preset-card .name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+}
+.preset-card .desc {
+  font-size: 10px;
+  color: var(--text-dim);
+  margin-top: 2px;
+  line-height: 1.4;
+  max-height: 28px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
 </style>
 </head>
 <body>
@@ -581,11 +665,13 @@ textarea {
   <div class="status-bar" id="statusBar">
     <div class="status-pill" id="baseStatus">
       <span class="status-dot"></span>
-      <span>Base 模型</span>
+      <span>Base</span>
+      <span class="status-text">检查中...</span>
     </div>
     <div class="status-pill" id="designStatus">
       <span class="status-dot"></span>
-      <span>Design 模型</span>
+      <span>Design</span>
+      <span class="status-text">检查中...</span>
     </div>
   </div>
 </header>
@@ -614,6 +700,9 @@ textarea {
     <div class="tab-content" id="tabContent">
       <!-- Clone Tab -->
       <div id="cloneTab">
+        <!-- Model warning will be injected here -->
+        <div id="cloneModelWarn"></div>
+
         <div class="hint-box" id="cloneHint">
           💡 从左侧选择一个音色，输入文本即可生成语音。首次生成需要加载模型（约10秒）。
         </div>
@@ -649,37 +738,42 @@ textarea {
 
       <!-- Design Tab -->
       <div id="designTab" style="display:none;">
-        <div class="hint-box">
-          💡 用文字描述设计一个全新的音色，不依赖参考音频。需要 VoiceDesign 模型。
-        </div>
-        <div id="designPresetsBox" style="margin-bottom:24px;">
-          <h3 style="font-size:13px;color:var(--text-dim);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px;">预设配方（点击套用）</h3>
-          <div id="designPresetList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;"></div>
-        </div>
-        <div class="form-group">
-          <label>音色名称 <span class="required">*</span></label>
-          <input type="text" id="designName" placeholder="如：小镜、旁白君">
-        </div>
-        <div class="form-group">
-          <label>建模短句（可选，留空用默认）</label>
-          <textarea id="designText" placeholder="这是一段用于音色建模的短句，请保持自然呼吸。" oninput="updateCharCount('designText','designCount',45)" style="min-height:60px;"></textarea>
-          <div class="char-count" id="designCount">0 / 45</div>
-        </div>
-        <div class="form-group">
-          <label>音色描述 <span class="required">*</span></label>
-          <input type="text" id="designTone" placeholder="如：年轻女性，温柔贴耳，说话带笑意">
-        </div>
-        <div class="form-group">
-          <label>情绪描述（可选）</label>
-          <input type="text" id="designEmotion" placeholder="如：温柔、安抚">
-        </div>
-        <div class="form-group">
-          <div class="checkbox-row">
-            <input type="checkbox" id="designCommit">
-            <label for="designCommit">满意后存入标准样音库（注册为可复用音色）</label>
+        <!-- Model warning will be injected here -->
+        <div id="designModelWarn"></div>
+
+        <div id="designContent" style="display:none;">
+          <div class="hint-box">
+            💡 用文字描述设计一个全新的音色，不依赖参考音频。点击下方预设配方可一键套用。
           </div>
+          <div id="designPresetsBox" style="margin-bottom:24px;">
+            <h3 style="font-size:13px;color:var(--text-dim);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px;">预设配方（点击套用）</h3>
+            <div id="designPresetList" class="preset-grid"></div>
+          </div>
+          <div class="form-group">
+            <label>音色名称 <span class="required">*</span></label>
+            <input type="text" id="designName" placeholder="如：小镜、旁白君">
+          </div>
+          <div class="form-group">
+            <label>建模短句（可选，留空用默认）</label>
+            <textarea id="designText" placeholder="这是一段用于音色建模的短句，请保持自然呼吸。" oninput="updateCharCount('designText','designCount',45)" style="min-height:60px;"></textarea>
+            <div class="char-count" id="designCount">0 / 45</div>
+          </div>
+          <div class="form-group">
+            <label>音色描述 <span class="required">*</span></label>
+            <input type="text" id="designTone" placeholder="如：年轻女性，温柔贴耳，说话带笑意">
+          </div>
+          <div class="form-group">
+            <label>情绪描述（可选）</label>
+            <input type="text" id="designEmotion" placeholder="如：温柔、安抚">
+          </div>
+          <div class="form-group">
+            <div class="checkbox-row">
+              <input type="checkbox" id="designCommit">
+              <label for="designCommit">满意后存入标准样音库（注册为可复用音色）</label>
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="doDesign()" id="designBtn">🎨 设计音色</button>
         </div>
-        <button class="btn btn-primary" onclick="doDesign()" id="designBtn">🎨 设计音色</button>
       </div>
 
       <!-- Library Tab -->
@@ -753,12 +847,19 @@ let selectedPersona = null;
 let currentTab = 'clone';
 let personas = {};
 let designPresets = [];
+let modelStatus = {
+  base: { ready: false, downloading: false, loaded: false, progress: null },
+  design: { ready: false, downloading: false, loaded: false, progress: null },
+};
 
 // ── Init ──
 document.addEventListener('DOMContentLoaded', () => {
   checkStatus();
   loadPersonas();
   loadAudioList();
+
+  // Auto-refresh status every 10s (for download progress)
+  setInterval(checkStatus, 10000);
 
   // File drop handlers
   const dropZone = document.querySelector('.file-drop');
@@ -786,28 +887,120 @@ async function checkStatus() {
   try {
     const res = await fetch('/api/status');
     const data = await res.json();
-    updateStatusPill('baseStatus', data.base_model, data.base_loaded, data.base_downloading);
-    updateStatusPill('designStatus', data.design_model, data.design_loaded, data.design_downloading);
+
+    modelStatus.base = {
+      ready: data.base_model,
+      downloading: data.base_downloading,
+      loaded: data.base_loaded,
+      progress: data.base_progress,
+    };
+    modelStatus.design = {
+      ready: data.design_model,
+      downloading: data.design_downloading,
+      loaded: data.design_loaded,
+      progress: data.design_progress,
+    };
+
+    updateStatusPill('baseStatus', modelStatus.base, 'Base');
+    updateStatusPill('designStatus', modelStatus.design, 'Design');
+
+    // Update tab warnings
+    updateCloneTabState();
+    updateDesignTabState();
   } catch (e) {
     console.error('Status check failed:', e);
   }
 }
 
-function updateStatusPill(id, modelExists, loaded, downloading) {
+function updateStatusPill(id, st, label) {
   const pill = document.getElementById(id);
   const dot = pill.querySelector('.status-dot');
-  if (loaded) {
+  const text = pill.querySelector('.status-text');
+
+  if (st.loaded) {
     dot.className = 'status-dot ok';
-    pill.title = '已加载';
-  } else if (downloading) {
+    text.className = 'status-text ready';
+    text.textContent = '已加载';
+    pill.title = '模型已加载到内存，可直接使用';
+  } else if (st.ready) {
+    dot.className = 'status-dot ok';
+    text.className = 'status-text ready';
+    text.textContent = '已就绪';
+    pill.title = '模型已下载，首次使用时自动加载';
+  } else if (st.downloading) {
     dot.className = 'status-dot loading';
-    pill.title = '模型下载中...';
-  } else if (modelExists) {
-    dot.className = 'status-dot loading';
-    pill.title = '模型已下载，首次使用时加载';
+    text.className = 'status-text downloading';
+    const pct = st.progress?.percent || 0;
+    const mb = st.progress?.downloaded_mb || 0;
+    const total = st.progress?.total_mb || 0;
+    text.textContent = `下载中 ${pct}%`;
+    pill.title = `下载中: ${mb}MB / ${total}MB (${pct}%)`;
   } else {
     dot.className = 'status-dot err';
-    pill.title = '模型未下载';
+    text.className = 'status-text missing';
+    text.textContent = '未下载';
+    pill.title = '模型未下载，功能不可用';
+  }
+}
+
+// ── Clone Tab State ──
+function updateCloneTabState() {
+  const warnBox = document.getElementById('cloneModelWarn');
+  const btn = document.getElementById('cloneBtn');
+  const st = modelStatus.base;
+
+  if (st.downloading) {
+    const pct = st.progress?.percent || 0;
+    const mb = st.progress?.downloaded_mb || 0;
+    const total = st.progress?.total_mb || 0;
+    warnBox.innerHTML = `
+      <div class="warn-banner download">
+        ⏳ <strong>Base 模型正在下载中</strong> — ${mb}MB / ${total}MB (${pct}%)
+        <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+        请等待下载完成后刷新页面，或手动执行：<br>
+        <code>.venv/bin/python -m modelscope.cli.cli download --model Qwen/Qwen3-TTS-12Hz-1.7B-Base --local_dir ./models/Base-1.7B</code>
+      </div>`;
+    btn.disabled = true;
+  } else if (!st.ready) {
+    warnBox.innerHTML = `
+      <div class="warn-banner">
+        ❌ <strong>Base 模型未下载</strong>，克隆合成功能不可用。请先下载模型：<br>
+        <code>.venv/bin/python -m modelscope.cli.cli download --model Qwen/Qwen3-TTS-12Hz-1.7B-Base --local_dir ./models/Base-1.7B</code>
+      </div>`;
+    btn.disabled = true;
+  } else {
+    warnBox.innerHTML = '';
+    btn.disabled = false;
+  }
+}
+
+// ── Design Tab State ──
+function updateDesignTabState() {
+  const warnBox = document.getElementById('designModelWarn');
+  const content = document.getElementById('designContent');
+  const st = modelStatus.design;
+
+  if (st.downloading) {
+    const pct = st.progress?.percent || 0;
+    const mb = st.progress?.downloaded_mb || 0;
+    const total = st.progress?.total_mb || 0;
+    warnBox.innerHTML = `
+      <div class="warn-banner download">
+        ⏳ <strong>VoiceDesign 模型正在下载中</strong> — ${mb}MB / ${total}MB (${pct}%)
+        <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+        下载完成后即可使用音色设计功能。页面会每 10 秒自动刷新状态。
+      </div>`;
+    content.style.display = 'none';
+  } else if (!st.ready) {
+    warnBox.innerHTML = `
+      <div class="warn-banner">
+        ❌ <strong>VoiceDesign 模型未下载</strong>，音色设计功能不可用。请先下载模型：<br>
+        <code>.venv/bin/python -m modelscope.cli.cli download --model Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign --local_dir ./models/VoiceDesign-1.7B</code>
+      </div>`;
+    content.style.display = 'none';
+  } else {
+    warnBox.innerHTML = '';
+    content.style.display = '';
   }
 }
 
@@ -830,7 +1023,7 @@ function renderPersonas() {
   const keys = Object.keys(personas);
 
   if (keys.length === 0) {
-    list.innerHTML = '<div class="persona-empty">暂无音色<br>点击「添加」注册</div>';
+    list.innerHTML = '<div class="persona-empty">暂无音色<br>点击「+ 添加」上传参考音频<br>或用「音色设计」生成</div>';
     return;
   }
 
@@ -839,7 +1032,7 @@ function renderPersonas() {
     const name = p.name || key;
     const hasTemp = p.has_temp;
     const hasRef = p.has_ref;
-    const source = p.source === 'generated' ? '预设' : '已注册';
+    const source = p.source === 'registered' ? '已注册' : '预设';
     return `
       <div class="persona-item ${selectedPersona === key ? 'active' : ''}" onclick="selectPersona('${key}')">
         <div class="name">${name}</div>
@@ -847,7 +1040,7 @@ function renderPersonas() {
         <div class="badges">
           <span class="badge ${hasTemp ? 'ok' : 'no'}">${hasTemp ? '✓ 样音' : '✗ 样音'}</span>
           <span class="badge ${hasRef ? 'ok' : 'no'}">${hasRef ? '✓ 参考' : '✗ 参考'}</span>
-          <span class="badge ok" style="background:rgba(212,160,82,0.15);color:var(--gold);">${source}</span>
+          <span class="badge gold">${source}</span>
         </div>
       </div>
     `;
@@ -861,7 +1054,6 @@ function selectPersona(key) {
   document.getElementById('clonePersona').value = key;
   document.getElementById('selectedPersona').style.display = 'flex';
   document.getElementById('selectedPersonaName').textContent = `${name} (${key})`;
-  // 如果有 instruction，自动填入语气
   if (p?.instruction) {
     document.getElementById('cloneTone').value = p.instruction;
   }
@@ -877,9 +1069,9 @@ function renderDesignPresets() {
   }
   document.getElementById('designPresetsBox').style.display = '';
   box.innerHTML = designPresets.map((p, i) => `
-    <div class="persona-item" onclick="applyPreset(${i})" style="cursor:pointer;">
+    <div class="preset-card" onclick="applyPreset(${i})">
       <div class="name">${p.voice_name}</div>
-      <div class="key" style="font-size:10px;line-height:1.4;max-height:28px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${p.tone || p.emotion || ''}</div>
+      <div class="desc">${p.tone || p.emotion || ''}</div>
     </div>
   `).join('');
 }

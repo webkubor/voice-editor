@@ -168,14 +168,49 @@ async def index():
 
 
 # ── API 路由 ──────────────────────────────────────────────
+def _model_download_progress(model_type: str) -> dict:
+    """检查模型下载进度"""
+    if model_type == "VoiceDesign":
+        p = MODELS_DIR / "VoiceDesign-1.7B"
+        expected_size = 3_600_000_000  # ~3.6GB
+    else:
+        p = MODELS_DIR / "Base-1.7B"
+        expected_size = 3_600_000_000  # ~3.6GB
+    if not p.exists():
+        return {"downloading": False, "downloaded_mb": 0, "total_mb": round(expected_size / 1024 / 1024), "percent": 0}
+    incomplete = list(p.glob("*.incomplete"))
+    complete = list(p.glob("*.safetensors"))
+    if incomplete:
+        size = sum(f.stat().st_size for f in incomplete)
+        return {
+            "downloading": True,
+            "downloaded_mb": round(size / 1024 / 1024),
+            "total_mb": round(expected_size / 1024 / 1024),
+            "percent": round(size / expected_size * 100),
+        }
+    if complete:
+        size = sum(f.stat().st_size for f in complete)
+        return {
+            "downloading": False,
+            "downloaded_mb": round(size / 1024 / 1024),
+            "total_mb": round(size / 1024 / 1024),
+            "percent": 100,
+        }
+    return {"downloading": False, "downloaded_mb": 0, "total_mb": round(expected_size / 1024 / 1024), "percent": 0}
+
+
 @app.get("/api/status")
 async def get_status():
     """检查模型和系统状态"""
+    base_prog = _model_download_progress("Base")
+    design_prog = _model_download_progress("VoiceDesign")
     return {
         "base_model": _check_model_dir("Base"),
         "design_model": _check_model_dir("VoiceDesign"),
-        "base_downloading": _model_downloading("Base"),
-        "design_downloading": _model_downloading("VoiceDesign"),
+        "base_downloading": base_prog["downloading"],
+        "design_downloading": design_prog["downloading"],
+        "base_progress": base_prog,
+        "design_progress": design_prog,
         "base_loaded": _base_engine is not None,
         "design_loaded": _design_engine is not None,
         "loading": _model_status["loading"],
