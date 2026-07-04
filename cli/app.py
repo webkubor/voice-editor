@@ -3,6 +3,7 @@ from cli.commands.voice import app as voice_app
 from cli.commands.tts import tts_clone, tts_design
 from cli.commands.job import app as job_app
 from cli.commands.preset import app as preset_app
+from cli.commands.doctor import doctor
 
 app = typer.Typer(
     name="voice",
@@ -14,6 +15,7 @@ app.add_typer(job_app, name="job")
 app.add_typer(preset_app, name="preset")
 app.command("clone")(tts_clone)
 app.command("design")(tts_design)
+app.command("doctor")(doctor)
 
 
 @app.command("web")
@@ -40,6 +42,7 @@ def main(ctx: typer.Context):
       clone      从已有音色克隆合成
       design     从文字描述设计新音色
       web        启动 Web UI
+      doctor     环境自检（Python / 依赖 / 模型 / 硬件 / 目录）
       preset     预设管理（list / show / run / batch）
       job        任务历史（list / show / clean）
     """

@@ -60,7 +60,8 @@ voice dialogue --script scripts/chapter_01.txt
 | 文案库（持久化常用台词） | ✅ | Web UI「克隆合成」文案 chip 条 |
 | 异步任务队列（进度可见） | ✅ | Web UI 右下角任务队列 |
 | 模型状态与下载进度 | ✅ | Web UI 顶部状态栏 |
-| 环境自检 | 🚧 | `voice doctor`（Phase 2）|
+| 环境自检 | ✅ | `voice doctor` |
+| Agent 无交互安装 | ✅ | `./install.sh --yes` |
 
 ---
 
@@ -121,6 +122,30 @@ voice-editor/
 
 ## 给 AI / Agent 调用
 
+### 无交互安装
+
+Agent / CI/CD 场景下，一条命令全自动安装，不弹任何确认：
+
+```bash
+./install.sh --yes                    # 全自动：依赖 + Base + VoiceDesign 模型
+./install.sh --yes --skip-voice-design  # 仅依赖 + Base 模型（省 4GB）
+./install.sh --yes --skip-models        # 仅装依赖，不下载模型
+```
+
+### 环境自检
+
+Agent 调用前先跑 `voice doctor` 确认环境就绪，支持 `--json` 输出方便解析：
+
+```bash
+voice doctor           # 人类可读表格报告
+voice doctor --json    # JSON 格式（agent 解析）
+voice doctor --fix     # 尝试自动修复
+```
+
+检查项：Python 版本、虚拟环境、12 个核心依赖、PyTorch 硬件加速（MPS/CUDA）、qwen_tts SDK、模型完整性、FFmpeg、目录结构、音色库、CLI 入口、Web UI 依赖、预设配方。
+
+### Agent 调用示例
+
 项目根目录提供 `.claude/skills/tts.md`，Claude Code 可以直接读取后无歧义执行 TTS 任务：
 
 ```bash
@@ -136,9 +161,9 @@ Agent 调用前请先确认 `source .venv/bin/activate` 已执行，或使用 `.
 
 - [x] Phase 1 — 命名统一、README 清晰化
 - [x] Phase 2a — CLI 稳定（clone / design / dialogue / voice list）
+- [x] Phase 2b — `voice doctor` 环境自检
 - [x] Phase 3 — WebUI MVP（上传音频 / 试听 / 下载）
-- [ ] Phase 2b — `voice doctor` 环境自检
-- [ ] Phase 4 — Agent 无交互安装模式
+- [x] Phase 4 — Agent 无交互安装模式
 
 ---
 
