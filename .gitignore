@@ -62,6 +62,10 @@ assets/output_audio/
 # (废弃) 旧版日志路径
 assets/metadata/
 
+# --- 运行时生成的临时配置 ---
+configs/generated/
+configs/scripts.json
+
 # --- 全局音频资产防上传 ---
 # 任何包含 audio 命名的目录
 **/*audio*/
