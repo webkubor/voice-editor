@@ -927,7 +927,7 @@ createApp({
       // 播放参考音频
       const el = this.$refs.previewPlayer;
       if (!el) return;
-      el.src = `/api/persona-audio/${encodeURIComponent(key)}`;
+      el.src = `/api/persona-audio?key=${encodeURIComponent(key)}`;
       this.previewKey = key;
       this.previewProgress = 0;
       try {

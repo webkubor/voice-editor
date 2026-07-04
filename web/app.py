@@ -484,7 +484,7 @@ def _scan_design_presets() -> list:
     return result
 
 
-@app.get("/api/persona-audio/{key}")
+@app.get("/api/persona-audio")
 async def get_persona_audio(key: str):
     """获取音色的参考音频（优先 temp 样音，其次原始 ref）"""
     if not PERSONAS_FILE.exists():
