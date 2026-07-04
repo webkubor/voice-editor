@@ -810,6 +810,46 @@ async def delete_audio(filename: str):
     return {"ok": True}
 
 
+# ── LLM (FreeLLMAPI) ────────────────────────────────────────
+
+class LLMGenerateRequest(BaseModel):
+    prompt: str
+    word_count: Optional[int] = None
+
+class LLMPolishRequest(BaseModel):
+    text: str
+    style: str = ""
+
+
+@app.get("/api/llm/status")
+async def llm_status():
+    """检测 FreeLLMAPI 是否可用"""
+    from core.llm_client import check_status
+    return check_status()
+
+
+@app.post("/api/llm/generate")
+async def llm_generate(req: LLMGenerateRequest):
+    """AI 文案生成"""
+    from core.llm_client import generate_script
+    try:
+        result = generate_script(req.prompt, req.word_count)
+        return {"ok": True, "text": result}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+@app.post("/api/llm/polish")
+async def llm_polish(req: LLMPolishRequest):
+    """AI 文案润色"""
+    from core.llm_client import polish_script
+    try:
+        result = polish_script(req.text, req.style)
+        return {"ok": True, "text": result}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
 # ── 启动入口 ──────────────────────────────────────────────
 if __name__ == "__main__":
     import uvicorn

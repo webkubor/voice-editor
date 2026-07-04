@@ -386,6 +386,39 @@ textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
 }
 .script-save-btn:hover { border-color: var(--gold); background: rgba(212,160,82,0.1); }
 .script-list { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+
+/* AI Assistant */
+.ai-section {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 14px 16px; margin-bottom: 16px; background: var(--bg-card);
+  transition: opacity 0.2s;
+}
+.ai-section.disabled { opacity: 0.6; }
+.ai-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.ai-header h3 { font-size: 13px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; flex: 1; }
+.ai-status { font-size: 11px; font-weight: 500; }
+.ai-status.ok { color: var(--green); }
+.ai-status.off { color: var(--red); }
+.ai-status.checking { color: var(--orange); }
+.ai-hint { font-size: 12px; color: var(--text-dim); line-height: 1.6; }
+.ai-hint code { background: var(--bg-hover); padding: 2px 6px; border-radius: 4px; font-size: 11px; color: var(--cyan); }
+.ai-body { display: flex; flex-direction: column; gap: 8px; }
+.ai-row { display: flex; gap: 8px; align-items: center; }
+.ai-row input { flex: 1; }
+.btn-ai {
+  background: rgba(86,182,194,0.15); border: 1px solid var(--cyan); color: var(--cyan);
+  padding: 6px 16px; border-radius: var(--radius); cursor: pointer;
+  font-size: 13px; white-space: nowrap; transition: all 0.2s;
+}
+.btn-ai:hover:not(:disabled) { background: rgba(86,182,194,0.25); }
+.btn-ai:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-ai-polish {
+  background: rgba(152,195,121,0.15); border: 1px solid var(--green); color: var(--green);
+  padding: 6px 16px; border-radius: var(--radius); cursor: pointer;
+  font-size: 13px; white-space: nowrap; transition: all 0.2s;
+}
+.btn-ai-polish:hover:not(:disabled) { background: rgba(152,195,121,0.25); }
+.btn-ai-polish:disabled { opacity: 0.5; cursor: not-allowed; }
 .script-chip {
   display: flex; align-items: center; gap: 6px; padding: 6px 12px;
   border-radius: var(--radius); border: 1px solid var(--border);
@@ -522,8 +555,38 @@ textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
           </div>
         </div>
 
+        <!-- AI Assistant -->
+        <div :class="['ai-section', { disabled: !llm.available }]">
+          <div class="ai-header">
+            <h3>✨ AI 文案助手</h3>
+            <span v-if="llm.checking" class="ai-status checking">检测中...</span>
+            <span v-else-if="llm.available" class="ai-status ok">● 已连接</span>
+            <span v-else class="ai-status off">● 未连接</span>
+          </div>
+          <div v-if="!llm.available" class="ai-hint">
+            需要先启动 FreeLLMAPI 服务：<code>curl -fsSL https://freellmapi.co/install.sh | bash</code>
+          </div>
+          <div v-else class="ai-body">
+            <div class="ai-row">
+              <input type="text" v-model="llm.genPrompt" placeholder="描述你要生成的文案，如：写一段武侠旁白，讲剑客归隐山林"
+                     @keyup.enter="aiGenerate" :disabled="llm.genLoading">
+              <input type="number" v-model="llm.genWordCount" placeholder="字数" min="10" max="500"
+                     style="width: 80px;" :disabled="llm.genLoading">
+              <button class="btn btn-ai" @click="aiGenerate" :disabled="llm.genLoading || !llm.genPrompt.trim()">
+                {{ llm.genLoading ? '生成中...' : '生成文案' }}
+              </button>
+            </div>
+            <div class="ai-row" v-if="cloneForm.text">
+              <input type="text" v-model="llm.polStyle" placeholder="润色风格（可选）：更激昂 / 更平静 / 更口语化"
+                     :disabled="llm.polLoading">
+              <button class="btn btn-ai-polish" @click="aiPolish" :disabled="llm.polLoading">
+                {{ llm.polLoading ? '润色中...' : '润色当前文案' }}
+              </button>
+            </div>
+          </div>
+        </div>
+
         <div class="form-group">
-          <label>合成文本 <span class="required">*</span></label>
           <textarea v-model="cloneForm.text" placeholder="输入要合成的文本..."></textarea>
           <div :class="['char-count', { warn: cloneForm.text.length > 320, over: cloneForm.text.length > 400 }]">
             {{ cloneForm.text.length }} / 400
@@ -779,6 +842,21 @@ createApp({
 
       // Scripts
       savedScripts: [],
+
+      // LLM (FreeLLMAPI)
+      llm: {
+        available: false,
+        checking: false,
+        base_url: '',
+        models: [],
+        // generate
+        genPrompt: '',
+        genWordCount: '',
+        genLoading: false,
+        // polish
+        polStyle: '',
+        polLoading: false,
+      },
 
       // Audio library
       audioFiles: [],
@@ -1068,6 +1146,63 @@ createApp({
       }
     },
 
+    // ── AI (FreeLLMAPI) ──
+    async checkLLM() {
+      this.llm.checking = true;
+      try {
+        const res = await fetch('/api/llm/status');
+        const data = await res.json();
+        this.llm.available = data.available || false;
+        this.llm.base_url = data.base_url || '';
+        this.llm.models = data.models || [];
+      } catch {
+        this.llm.available = false;
+      } finally {
+        this.llm.checking = false;
+      }
+    },
+    async aiGenerate() {
+      const prompt = this.llm.genPrompt.trim();
+      if (!prompt) return;
+      this.llm.genLoading = true;
+      try {
+        const wc = this.llm.genWordCount ? parseInt(this.llm.genWordCount) : null;
+        const res = await fetch('/api/llm/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt, word_count: wc }),
+        });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || '生成失败');
+        this.cloneForm.text = data.text;
+        this.showToast('文案已生成', 'success');
+      } catch (e) {
+        this.showToast('AI 生成失败: ' + e.message, 'error');
+      } finally {
+        this.llm.genLoading = false;
+      }
+    },
+    async aiPolish() {
+      const text = this.cloneForm.text.trim();
+      if (!text) { this.showToast('文本框为空', 'error'); return; }
+      this.llm.polLoading = true;
+      try {
+        const res = await fetch('/api/llm/polish', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text, style: this.llm.polStyle.trim() }),
+        });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || '润色失败');
+        this.cloneForm.text = data.text;
+        this.showToast('文案已润色', 'success');
+      } catch (e) {
+        this.showToast('AI 润色失败: ' + e.message, 'error');
+      } finally {
+        this.llm.polLoading = false;
+      }
+    },
+
     // ── Clone ──
     async doClone() {
       const persona = this.cloneForm.persona.trim();
@@ -1230,8 +1365,10 @@ createApp({
     this.loadPersonas();
     this.loadAudioList();
     this.loadScripts();
+    this.checkLLM();
     this.pollTasks();
     setInterval(() => this.checkStatus(), 10000);
+    setInterval(() => this.checkLLM(), 30000);
   },
 }).mount('#app');
 </script>

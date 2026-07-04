@@ -64,8 +64,10 @@ voice dialogue --script scripts/chapter_01.txt
 | 文案库（持久化常用台词） | ✅ | Web UI「克隆合成」文案 chip 条 |
 | 异步任务队列（进度可见） | ✅ | Web UI 右下角任务队列 |
 | 模型状态与下载进度 | ✅ | Web UI 顶部状态栏 |
-| 环境自检 | ✅ | `voice doctor` |
+| 环境自检 | ✅ | `voice doctor`（含 FreeLLMAPI 检测） |
 | Agent 无交互安装 | ✅ | `./install.sh --yes` |
+| **AI 文案生成** | ✅ | `voice ai-script "描述"` / Web UI AI 助手 |
+| **AI 文案润色** | ✅ | `voice ai-polish "文案"` / Web UI AI 助手 |
 
 ---
 
@@ -98,6 +100,26 @@ voice web
 - **音频库**：历史生成列表，支持播放、下载、删除。
 - **任务队列**：合成 / 设计均为后台异步任务，带进度条，UI 不阻塞，可随时查看队列状态。
 - **模型状态栏**：顶部实时显示 Base / VoiceDesign 模型下载状态（未下载 / 下载中 / 已就绪），模型未就绪时对应功能自动禁用。
+- **AI 文案助手**：接入 [FreeLLMAPI](https://github.com/tashfeenahmed/freellmapi) 后，可在克隆合成 Tab 中用 AI 生成文案、润色已有文案。未接入时功能自动隐藏，不影响核心 TTS 流程。
+
+### AI 文案助手（可选）
+
+VoxCraft 支持接入 [FreeLLMAPI](https://github.com/tashfeenahmed/freellmapi) — 一个聚合 18 个免费 LLM 提供商的 OpenAI 兼容代理，实现 AI 文案生成与润色。
+
+```bash
+# 1. 安装 FreeLLMAPI（Docker 一键启动）
+curl -fsSL https://freellmapi.co/install.sh | bash
+
+# 2. 启动后访问 http://localhost:3001 添加免费 LLM API Key
+
+# 3. 在 VoxCraft 中使用
+voice ai-script "写一段武侠旁白，讲剑客归隐山林" --words 200
+voice ai-polish "霜叶红于二月花" --style "更激昂"
+
+# 或在 Web UI → 克隆合成 → AI 文案助手
+```
+
+不安装 FreeLLMAPI 也不影响核心 TTS 功能，AI 助手会显示「未连接」并禁用。
 
 ---
 

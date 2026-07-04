@@ -33,6 +33,7 @@ dependencies = [
   "pydub",
   "typer>=0.12",
   "rich>=13.0",
+  "openai>=1.0",
 ]
 
 [project.urls]

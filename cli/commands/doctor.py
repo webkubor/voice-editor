@@ -312,6 +312,27 @@ def check_presets():
     return _ok(f"预设配方就绪（{len(files)} 个）")
 
 
+# ── 13. FreeLLMAPI (AI 文案助手) ─────────────────────────────
+
+@register
+def check_freellmapi():
+    try:
+        from core.llm_client import check_status
+        status = check_status()
+        if status["available"]:
+            models = status.get("models", [])
+            model_str = ", ".join(models[:3]) if models else "auto"
+            return _ok("FreeLLMAPI 已连接", f"模型: {model_str}{' ...' if len(models) > 3 else ''}")
+        return _warn(
+            "FreeLLMAPI 未连接",
+            "AI 文案助手不可用 | 安装: curl -fsSL https://freellmapi.co/install.sh | bash",
+        )
+    except ImportError:
+        return _warn("openai SDK 未安装", "pip install openai")
+    except Exception as e:
+        return _warn(f"FreeLLMAPI 检测异常: {e}", "确认服务运行在 localhost:3001")
+
+
 # ── 主命令 ──────────────────────────────────────────────────
 
 

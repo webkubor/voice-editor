@@ -4,6 +4,7 @@ from cli.commands.tts import tts_clone, tts_design
 from cli.commands.job import app as job_app
 from cli.commands.preset import app as preset_app
 from cli.commands.doctor import doctor
+from cli.commands.ai import ai_script, ai_polish
 
 app = typer.Typer(
     name="voice",
@@ -16,6 +17,8 @@ app.add_typer(preset_app, name="preset")
 app.command("clone")(tts_clone)
 app.command("design")(tts_design)
 app.command("doctor")(doctor)
+app.command("ai-script")(ai_script)
+app.command("ai-polish")(ai_polish)
 
 
 @app.command("web")
@@ -42,7 +45,9 @@ def main(ctx: typer.Context):
       clone      从已有音色克隆合成
       design     从文字描述设计新音色
       web        启动 Web UI
-      doctor     环境自检（Python / 依赖 / 模型 / 硬件 / 目录）
+      doctor     环境自检（Python / 依赖 / 模型 / 硬件 / 目录 / FreeLLMAPI）
+      ai-script  AI 文案生成（需 FreeLLMAPI）
+      ai-polish  AI 文案润色（需 FreeLLMAPI）
       preset     预设管理（list / show / run / batch）
       job        任务历史（list / show / clean）
     """
