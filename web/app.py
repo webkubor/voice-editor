@@ -183,43 +183,6 @@ async def get_status():
     }
 
 
-def _scan_generated_personas() -> dict:
-    """扫描 configs/generated/ 目录，加载已设计的克隆音色"""
-    gen_dir = BASE_DIR / "configs" / "generated"
-    result = {}
-    if not gen_dir.exists():
-        return result
-    for f in sorted(gen_dir.glob("*.json")):
-        try:
-            with open(f, "r", encoding="utf-8") as fh:
-                cfg = json.load(fh)
-            if cfg.get("model_type") != "Base":
-                continue
-            persona_key = cfg.get("persona", "").strip()
-            if not persona_key:
-                continue
-            # 显示名取 persona 字段
-            display_name = persona_key
-            # 检查标准样音是否存在
-            temp_path = TEMP_DIR / f"当前参考_{display_name}.wav"
-            meta = cfg.get("meta", {})
-            seed_rel = meta.get("standard_seed", "")
-            seed_path = BASE_DIR / seed_rel if seed_rel else None
-            result[persona_key] = {
-                "name": display_name,
-                "source": "generated",
-                "config_file": f.name,
-                "has_temp": temp_path.exists(),
-                "has_ref": seed_path.exists() if seed_path else False,
-                "ref": seed_rel,
-                "instruction": cfg.get("tone", ""),
-                "title": cfg.get("title", ""),
-            }
-        except Exception:
-            continue
-    return result
-
-
 def _scan_design_presets() -> list:
     """扫描 configs/presets/ 目录，加载设计配方"""
     preset_dir = BASE_DIR / "configs" / "presets"
@@ -249,8 +212,8 @@ def _scan_design_presets() -> list:
 
 @app.get("/api/personas")
 async def list_personas():
-    """列出所有已注册音色 + 预设音色"""
-    # 1. 从 personas.json 加载已注册音色
+    """列出所有已注册音色 + 设计预设"""
+    # 从 personas.json 加载已注册音色
     registered = {}
     if PERSONAS_FILE.exists():
         try:
@@ -278,16 +241,10 @@ async def list_personas():
                     "has_ref": False,
                 }
 
-    # 2. 从 configs/generated/ 加载预设克隆音色
-    generated = _scan_generated_personas()
-
-    # 3. 合并：registered 优先，generated 补充
-    merged = {**generated, **registered}
-
-    # 4. 设计预设
+    # 设计预设
     presets = _scan_design_presets()
 
-    return {"personas": merged, "presets": presets, "total": len(merged)}
+    return {"personas": registered, "presets": presets, "total": len(registered)}
 
 
 @app.post("/api/personas/add")
@@ -368,22 +325,8 @@ async def clone(req: CloneRequest):
         raise HTTPException(400, f"文本过长（{len(req.text)} > 400 字）")
 
     persona_map = get_persona_map()
-    # 如果 personas.json 中没有，尝试从 generated 配置加载
     if req.persona not in persona_map:
-        gen_file = BASE_DIR / "configs" / "generated" / f"{req.persona}_generate.json"
-        if gen_file.exists():
-            try:
-                with open(gen_file, "r", encoding="utf-8") as f:
-                    gen_cfg = json.load(f)
-                persona_map[req.persona] = {
-                    "name": gen_cfg.get("persona", req.persona),
-                    "ref": gen_cfg.get("meta", {}).get("standard_seed", ""),
-                    "instruction": gen_cfg.get("tone", ""),
-                }
-            except Exception:
-                pass
-    if req.persona not in persona_map:
-        raise HTTPException(400, f"音色 {req.persona} 未注册")
+        raise HTTPException(400, f"音色 {req.persona} 未注册，请先在 Web UI 上传参考音频")
 
     pdata = persona_map[req.persona]
     if not isinstance(pdata, dict):
