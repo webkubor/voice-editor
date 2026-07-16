@@ -1,5 +1,7 @@
 ![logo](https://cdn.jsdelivr.net/gh/webkubor/picx-images-hosting@master/blog/projects/voice-editor/cs-token4ai-1784193620540717000.png)
 
+![banner](https://cdn.jsdelivr.net/gh/webkubor/picx-images-hosting@master/blog/projects/voice-editor-banner/cs-token4ai-1784198005604575000.png)
+
 # VoxCraft 声坊
 
 > 本地运行的中文语音克隆 + 音色设计工具。  
